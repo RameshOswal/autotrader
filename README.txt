@@ -2,6 +2,8 @@ Hi this is a repo for Project in 11785-Intro to Deep Learning taught by Prof Bhi
 
 Following are some important link:
 
+Course Website: http://deeplearning.cs.cmu.edu/
+
 ARIMA Baseline Google Collab: https://colab.research.google.com/drive/1iK8aQa5pujq0uMIr7dPwY4gz6XcfOzGE#scrollTo=OaLJDFKsicwp
 
 Dataset: https://bitbucket.org/rameshoswal/dataset/src
