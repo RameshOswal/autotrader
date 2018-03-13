@@ -14,7 +14,7 @@ class get_metrics:
         fig.savefig('test')
         # plt.show()
 
-    def apv_arima(self, y_true, weights, lbl_dict, pv_0 = 1, get_graph = False):
+    def apv_single_asset(self, y_true, weights, lbl_dict, pv_0 = 1, get_graph = False):
         """
         :param y_true: true closing/opening value of the stock/crypto
         :param weights: denotes decision taken at each time step
@@ -36,14 +36,14 @@ class get_metrics:
 
         if get_graph: self.graph_output(del_portfolio)
 
-        sharpe_ratio = self.sr_arima(del_portfolio)
-        mdd = self.mdd_arima(del_portfolio)
+        sharpe_ratio = self.sr_vals(del_portfolio)
+        mdd = self.mdd_vals(del_portfolio)
 
         print("MDD = {}, fAPV = {}, Sharpe Ratio = {}".format(mdd, portfolio_val, sharpe_ratio))
 
         return mdd, portfolio_val, sharpe_ratio
 
-    def sr_arima(self, del_pv):
+    def sr_vals(self, del_pv):
         """
         :param del_pv: changes in portfolio value
         :return: sharpe ratio
@@ -51,7 +51,7 @@ class get_metrics:
         del_pv -= 1
         return np.mean(del_pv)/ np.std(del_pv)
 
-    def mdd_arima(self, del_pv):
+    def mdd_vals(self, del_pv):
         """
         :param del_pv: changes in portfolio value
         :return: MDD
@@ -69,4 +69,4 @@ class get_metrics:
 
 if __name__ == "__main__":
     test = get_metrics()
-    test.apv_arima(np.random.uniform(low = 2, high = 10, size = 125), np.random.randint(low = 1, high=4, size=125), lbl_dict={1 : 0.99, 2: 1, 3: 1.01}, get_graph=True)
+    test.apv_single_asset(np.random.uniform(low = 2, high = 10, size = 125), np.random.randint(low = 1, high=4, size=125), lbl_dict={1 : 0.99, 2: 1, 3: 1.01}, get_graph=True)
