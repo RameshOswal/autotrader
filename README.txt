@@ -9,3 +9,6 @@ ARIMA Baseline Google Collab: https://colab.research.google.com/drive/1iK8aQa5pu
 Dataset: https://bitbucket.org/rameshoswal/dataset/src
 
 Proposal: https://www.overleaf.com/14094309jyjwbgjrmgkx#/54590739/ 
+
+
+Metrics for evaluating performance - [Link](https://hackmd.io/kLZF5u4HQcuM7_B_uzfuPQ#) to a markdown file that renders properly!
