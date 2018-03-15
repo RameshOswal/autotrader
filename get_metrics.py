@@ -38,20 +38,11 @@ class get_metrics:
             self.graph_output(del_portfolio, "ratios")
             self.graph_output(y_true, "actual_price")
 
-        sharpe_ratio = self.sr_vals(del_portfolio)
         mdd = self.mdd_vals(del_portfolio)
 
-        print("MDD = {}, fAPV = {}, Sharpe Ratio = {}".format(mdd, portfolio_val, sharpe_ratio))
+        print("MDD = {}, fAPV = {}".format(mdd, portfolio_val))
 
-        return mdd, portfolio_val, sharpe_ratio
-
-    def sr_vals(self, del_pv):
-        """
-        :param del_pv: changes in portfolio value
-        :return: sharpe ratio
-        """
-        del_pv -= 1
-        return np.mean(del_pv)/ np.std(del_pv)
+        return mdd, portfolio_val
 
     def mdd_vals(self, del_pv):
         """
@@ -68,8 +59,69 @@ class get_metrics:
             else: drawdown_lst.append( (max_val - pv_vals[idx]) / max_val)
         return max(drawdown_lst)
 
+    def apv_multiple_asset(self, y_true, weights, pv_0 = 1, get_graph = False):
+        """
+        :param y_true: true closing/opening value all the stocks/crypto
+        :param weights: denotes decision taken at each time step for all stock/crypto
+        :return: MDD, final portfolio value, SR
+        """
+        assert y_true.shape == weights.shape, "Shape Mismatch!"
+        assert len(y_true) == len(weights) and len(y_true[0]) == len(weights[0]), "Dimension Mismatch!, Length of True labels {} != Decision length {}".format(len(y_true), len(weights))
+
+        rp_vector = np.array([[1] * weights.shape[1]] + [np.divide(y , x) for (x, y) in zip(y_true[:, :], y_true[1:, :])])
+
+        portfolio_val = pv_0 * np.product([np.dot(r , w) for (r, w) in zip(rp_vector, weights)])
+
+        # Finding change in portfolio values for sharpe ratio
+        del_portfolio = np.ndarray(shape = (rp_vector.shape[0] + 1,))
+        del_portfolio[0] = 1.0
+        for idx in range(1, del_portfolio.shape[0]):
+            del_portfolio[idx] = np.dot(del_portfolio[idx - 1] , np.dot(rp_vector[idx - 1, :] , weights[idx - 1, :]))
+
+
+        sharpe_ratio = self.sr_vals_multiple_asset(rp_vector, weights)
+        mdd = self.mdd_vals_multiple_asset(del_portfolio)
+
+        if get_graph:
+            self.graph_output(del_portfolio, "ratios")
+            self.graph_output(sharpe_ratio, "sharpe_ratio")
+
+        print("MDD = {}, fAPV = {}".format(mdd, portfolio_val))
+
+        return mdd, portfolio_val
+
+    def sr_vals_multiple_asset(self, rp, weights):
+        """
+        :param rp: relative price vector
+        :param weights: weight vector
+        :return: sharpe ratio at each time step
+        """
+        out = np.ndarray(shape = (rp.shape[0],))
+        for sr in range(out.shape[0]):
+            rho_val = np.multiply(rp[sr, :] , weights[sr, :]) - 1
+            out[sr] = np.mean(rho_val) / np.std(rho_val)
+        return out
+
+    def mdd_vals_multiple_asset(self, del_pv):
+        """
+        :param del_pv: changes in portfolio value
+        :return: MDD
+        """
+        drawdowns = []
+        trough = peak = del_pv[0]
+        for idx in range(1, del_pv.shape[0]):
+            if del_pv[idx] <= peak:
+                trough = min(trough, del_pv[idx])
+            else:
+                drawdowns.append((trough - peak) / peak)
+                peak = del_pv[idx]
+        return max(drawdowns[1:])
+
 """
 if __name__ == "__main__":
     test = get_metrics()
     test.apv_single_asset(np.random.uniform(low = 2, high = 10, size = 125), np.random.randint(low = 1, high=4, size=125), lbl_dict={1 : 0.99, 2: 1, 3: 1.01}, get_graph=True)
 """
+if __name__ == "__main__":
+    test = get_metrics()
+    test.apv_multiple_asset(np.random.uniform(low = 0, high = 1, size = [100, 4]), np.random.uniform(low = 0, high=1, size=[100, 4]), get_graph=True)
