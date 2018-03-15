@@ -22,13 +22,13 @@ class ARIMAModel:
             results_true = None
             results_predicted = None
             for i in range(endog_data.shape[1]):
-                ytrue, ypred = self.evaluate_single(endog_data[i,:], start_pt)
+                ytrue, ypred = self.evaluate_single(endog_data[:,i], start_pt)
                 if results_true is None:
                     results_true = ytrue
                     results_predicted = ypred
                 else:
-                    results_true = np.concatenate((results_true, ytrue), axis=1)
-                    results_predicted = np.concatenate((results_predicted, ypred), axis=1)
+                    results_true = np.vstack((results_true, ytrue))
+                    results_predicted = np.vstack((results_predicted, ypred))
             return results_true, results_predicted
 
     def forecast(self, endog_history, steps_ahead):
@@ -38,8 +38,8 @@ class ARIMAModel:
             endog_history = endog_history.flatten()
             return self.forecast_single(endog_history, steps_ahead)
         else:
-            results = [self.forecast_single(endog_history[i, :], steps_ahead) for i in range(endog_history.shape[1])]
-            return np.concatenate(results, axis=1)
+            results = [self.forecast_single(endog_history[:, i], steps_ahead) for i in range(endog_history.shape[1])]
+            return np.vstack(results)
 
 
     def evaluate_single(self, endog_data, start_pt):
@@ -57,3 +57,21 @@ class ARIMAModel:
     def forecast_single(self, endog_history, steps_ahead):
         model = ARIMA(endog_history[-self.bptt:], order=self.order).fit(disp=0)
         return model.forecast(steps=steps_ahead)[0]
+
+    def normalize(self, price_weights):
+        return price_weights/price_weights.sum()
+
+    def compute_allocation_weights(self, ypred, ytrue, cash_reserve=0.01):
+        assert len(ypred.shape) == 2, "Number of dimensions must be 2"
+        num_timesteps, num_stocks = ypred.shape
+        alloc_weights = np.zeros((num_timesteps, num_stocks + 1),dtype=np.float)
+        alloc_weights[0][0] = 1.0
+        for t in range(1, num_timesteps):
+            rel_change = (ypred[t] - ytrue[t - 1])/ytrue[t - 1]
+            rel_change += 1.0
+            rel_change = rel_change/rel_change.sum()
+            rel_change -= cash_reserve
+            rel_change = np.max(rel_change, 0)
+            alloc_weights[t][1:] = rel_change
+            alloc_weights[t][0] = 1.0 - rel_change.sum()
+        return alloc_weights
