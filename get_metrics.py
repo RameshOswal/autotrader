@@ -51,7 +51,6 @@ class get_metrics:
         :return: sharpe ratio
         """
         del_pv -= 1
-        print(del_pv)
         return np.mean(del_pv)/ np.std(del_pv)
 
     def mdd_vals(self, del_pv):

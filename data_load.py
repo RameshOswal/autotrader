@@ -21,8 +21,8 @@ def save_dataset_files(dataset, basepath="", name_prefix=""):
 class DataPreprocess:
 
     def __init__(self,
-                 input_folder_name='../../dataset/updated_poloniex_data',
-                 output_folder_name = '../../dataset/Poloneix_Preprocessed',
+                 input_folder_name='dataset/updated_poloniex_data',
+                 output_folder_name = 'dataset/Poloneix_Preprocessed',
                  train_dates=[['2014-07-01', '2016-05-07'], ['2014-11-01', '2016-09-07'], ['2015-02-01', '2016-12-08'],
                               ['2015-05-01', '2017-03-07']],
                  test_dates = [['2016-05-07', '2016-06-27'], ['2016-09-07', '2016-10-28'], ['2016-12-08', '2017-01-28'],
