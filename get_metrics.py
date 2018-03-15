@@ -65,10 +65,14 @@ class get_metrics:
         :param weights: denotes decision taken at each time step for all stock/crypto
         :return: MDD, final portfolio value, SR
         """
-        assert y_true.shape == weights.shape, "Shape Mismatch!"
-        assert len(y_true) == len(weights) and len(y_true[0]) == len(weights[0]), "Dimension Mismatch!, Length of True labels {} != Decision length {}".format(len(y_true), len(weights))
+        assert len(y_true) == len(weights) - 1 and len(y_true[0]) == len(weights[0]) - 1, "Dimension Mismatch!, Length of True labels {} != Decision length {}".format(len(y_true), len(weights))
 
-        rp_vector = np.array([[1] * weights.shape[1]] + [np.divide(y , x) for (x, y) in zip(y_true[:, :], y_true[1:, :])])
+        y_mod = np.ndarray(shape = weights.shape)
+        y_mod[:,0] = 1
+        y_mod[:-1, 1:] = y_true
+        y_mod[-1, :] = 1
+
+        rp_vector = np.array([[1] * weights.shape[1]] + [np.divide(y , x) for (x, y) in zip(y_mod[:, :], y_mod[1:, :])])
 
         portfolio_val = pv_0 * np.product([np.dot(r , w) for (r, w) in zip(rp_vector, weights)])
 
@@ -124,4 +128,4 @@ if __name__ == "__main__":
 """
 if __name__ == "__main__":
     test = get_metrics()
-    test.apv_multiple_asset(np.random.uniform(low = 0, high = 1, size = [100, 4]), np.random.uniform(low = 0, high=1, size=[100, 4]), get_graph=True)
+    test.apv_multiple_asset(np.random.uniform(low = 0, high = 1, size = [99, 3]), np.random.uniform(low = 0, high=1, size=[100, 4]), get_graph=True)
