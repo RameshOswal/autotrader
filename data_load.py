@@ -61,10 +61,16 @@ class DataPreprocess:
         for key in dataset:
             s, start_date, end_date = key.split('_')
             cur_date = start_date+'_'+end_date
-            if s == "train":
-                train_data[cur_date] = dataset[key][asset_name+'_'+feature_type]
+
+            if type(asset_name) == str:
+                values = dataset[key][asset_name + '_' + feature_type]
             else:
-                test_data[cur_date] = dataset[key][asset_name+'_'+feature_type]
+                values = dataset[key][[asset + '_' + feature_type for asset in asset_name]]
+
+            if s == "train":
+                train_data[cur_date] = values
+            else:
+                test_data[cur_date] = values
         for i in range(len(self.train_dates)):
             train_date = "_".join(self.train_dates[i])
             test_date  = "_".join(self.test_dates[i])
@@ -115,8 +121,8 @@ if __name__=='__main__':
     test_dates = [['2016-05-07', '2016-06-27'], ['2016-09-07', '2016-10-28'], ['2016-12-08', '2017-01-28'],
                   ['2017-03-07', '2017-04-27']]
 
-    input_folder_name = '../../dataset/updated_poloniex_data'
-    output_folder_name = '../../dataset/Poloneix_Preprocessed'
+    input_folder_name = 'dataset/updated_poloniex_data'
+    output_folder_name = 'dataset/Poloneix_Preprocessed'
 
     data = DataPreprocess(input_folder_name=input_folder_name,
                           output_folder_name=output_folder_name,
@@ -125,8 +131,13 @@ if __name__=='__main__':
     # data.asset_name()
     # df = data.back_fwd_fill()
     for tr, te, in data.load_train_test( asset_name='BTC_LTC', feature_type='weightedAverage' ):
-        print(tr.shape)
-        print(te.shape)
+        print(tr.values.shape)
+        print(te.values.shape)
+        break
+    for tr, te, in data.load_train_test(asset_name=['BTC_LTC', 'BTC_XEM'], feature_type='weightedAverage'):
+        print(tr.values.shape)
+        print(te.values.shape)
+        break
     # for tr, te, in data.load_train_test(asset_name='BTC_XEM', feature_type='weightedAverage'):
     #     print(tr.shape)
     #     print(te.shape)
