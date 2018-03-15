@@ -29,7 +29,7 @@ class ARIMAModel:
                 else:
                     results_true = np.vstack((results_true, ytrue))
                     results_predicted = np.vstack((results_predicted, ypred))
-            return results_true, results_predicted
+            return results_true.T, results_predicted.T
 
     def forecast(self, endog_history, steps_ahead):
         num_dims = len(endog_history.shape)
@@ -71,7 +71,7 @@ class ARIMAModel:
             rel_change += 1.0
             rel_change = rel_change/rel_change.sum()
             rel_change -= cash_reserve
-            rel_change = np.max(rel_change, 0)
+            rel_change = np.maximum(rel_change, 0)
             alloc_weights[t][1:] = rel_change
             alloc_weights[t][0] = 1.0 - rel_change.sum()
         return alloc_weights

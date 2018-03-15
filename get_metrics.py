@@ -73,7 +73,6 @@ class get_metrics:
         y_mod[-1, :] = 1
 
         rp_vector = np.array([[1] * weights.shape[1]] + [np.divide(y , x) for (x, y) in zip(y_mod[:, :], y_mod[1:, :])])
-
         portfolio_val = pv_0 * np.product([np.dot(r , w) for (r, w) in zip(rp_vector, weights)])
 
         # Finding change in portfolio values for sharpe ratio
@@ -125,7 +124,8 @@ class get_metrics:
 if __name__ == "__main__":
     test = get_metrics()
     test.apv_single_asset(np.random.uniform(low = 2, high = 10, size = 125), np.random.randint(low = 1, high=4, size=125), lbl_dict={1 : 0.99, 2: 1, 3: 1.01}, get_graph=True)
-"""
 if __name__ == "__main__":
     test = get_metrics()
     test.apv_multiple_asset(np.random.uniform(low = 0, high = 1, size = [99, 3]), np.random.uniform(low = 0, high=1, size=[100, 4]), get_graph=True)
+"""
+
