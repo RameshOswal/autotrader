@@ -1,9 +1,13 @@
 from statsmodels.tsa.arima_model import ARIMA
 import numpy as np
+from joblib import Parallel, delayed
+
+def _evaluate_single(arg, **kwarg):
+    return ARIMAModel.evaluate_single(*arg, **kwarg)
 
 
 class ARIMAModel:
-    def __init__(self, ar_order, num_diffs, ma_order, bptt=None):
+    def __init__(self, ar_order, num_diffs, ma_order, num_jobs=-1, bptt=None):
         """
         ar_order: Lag order for the AR model
         num_diffs: Level of differencing
@@ -11,6 +15,7 @@ class ARIMAModel:
         """
         self.order = (ar_order, num_diffs, ma_order)
         self.bptt = bptt
+        self.num_jobs = num_jobs
 
     def evaluate(self, endog_data, start_pt):
         num_dims = len(endog_data.shape)
@@ -21,15 +26,17 @@ class ARIMAModel:
         else:
             results_true = None
             results_predicted = None
-            for i in range(endog_data.shape[1]):
-                ytrue, ypred = self.evaluate_single(endog_data[:,i], start_pt)
-                if results_true is None:
-                    results_true = ytrue
-                    results_predicted = ypred
-                else:
-                    results_true = np.vstack((results_true, ytrue))
-                    results_predicted = np.vstack((results_predicted, ypred))
-            return results_true, results_predicted
+            result = self.parallel_evaluate_single(endog_data, start_pt, endog_data.shape[1])
+            # for i in range(endog_data.shape[1]):
+            #     ytrue, ypred = self.evaluate_single(endog_data[:,i], start_pt)
+            #     if results_true is None:
+            #         results_true = ytrue
+            #         results_predicted = ypred
+            #     else:
+            #         results_true = np.vstack((results_true, ytrue))
+            #         results_predicted = np.vstack((results_predicted, ypred))
+            return result
+            # return results_true.T, results_predicted.T
 
     def forecast(self, endog_history, steps_ahead):
         num_dims = len(endog_history.shape)
@@ -40,6 +47,11 @@ class ARIMAModel:
         else:
             results = [self.forecast_single(endog_history[:, i], steps_ahead) for i in range(endog_history.shape[1])]
             return np.vstack(results)
+
+    def parallel_evaluate_single(self, endog_data, start_pt, num_stocks):
+        results = Parallel(n_jobs=-1, backend="threading") \
+            (delayed(_evaluate_single)(i, endog_data[:, i], start_pt) for i in zip([self] * len(num_stocks), num_stocks))
+        return results
 
 
     def evaluate_single(self, endog_data, start_pt):
@@ -71,7 +83,7 @@ class ARIMAModel:
             rel_change += 1.0
             rel_change = rel_change/rel_change.sum()
             rel_change -= cash_reserve
-            rel_change = np.max(rel_change, 0)
+            rel_change = np.maximum(rel_change, 0)
             alloc_weights[t][1:] = rel_change
             alloc_weights[t][0] = 1.0 - rel_change.sum()
         return alloc_weights
