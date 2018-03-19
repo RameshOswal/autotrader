@@ -1,6 +1,7 @@
 from statsmodels.tsa.arima_model import ARIMA
 import numpy as np
 from joblib import Parallel, delayed
+import warnings
 
 def _evaluate_single(arg, **kwarg):
     return ARIMAModel.evaluate_single(*arg, **kwarg)
@@ -24,19 +25,7 @@ class ARIMAModel:
             endog_data = endog_data.flatten()
             return self.evaluate_single(endog_data, start_pt)
         else:
-            results_true = None
-            results_predicted = None
-            result = self.parallel_evaluate_single(endog_data, start_pt, endog_data.shape[1])
-            # for i in range(endog_data.shape[1]):
-            #     ytrue, ypred = self.evaluate_single(endog_data[:,i], start_pt)
-            #     if results_true is None:
-            #         results_true = ytrue
-            #         results_predicted = ypred
-            #     else:
-            #         results_true = np.vstack((results_true, ytrue))
-            #         results_predicted = np.vstack((results_predicted, ypred))
-            return result
-            # return results_true.T, results_predicted.T
+            return self.parallel_evaluate_single(endog_data, start_pt, endog_data.shape[1])
 
     def forecast(self, endog_history, steps_ahead):
         num_dims = len(endog_history.shape)
@@ -49,10 +38,13 @@ class ARIMAModel:
             return np.vstack(results)
 
     def parallel_evaluate_single(self, endog_data, start_pt, num_stocks):
-        results = Parallel(n_jobs=-1, backend="threading") \
-            (delayed(_evaluate_single)(i, endog_data[:, i], start_pt) for i in zip([self] * len(num_stocks), num_stocks))
-        return results
-
+        results = Parallel(n_jobs=self.num_jobs, backend="threading",verbose=4) \
+            (delayed(_evaluate_single)(i) for i in zip([self] * num_stocks,
+                                                       [endog_data[:, s] for s in range(num_stocks)],
+                                                       [start_pt]*num_stocks))
+        ytrue_stacked = [results[i][0] for i in range(num_stocks)]
+        ypred_stacked = [results[i][1] for i in range(num_stocks)]
+        return np.vstack(ytrue_stacked).T, np.vstack(ypred_stacked).T
 
     def evaluate_single(self, endog_data, start_pt):
         if self.bptt is not None:
@@ -61,8 +53,10 @@ class ARIMAModel:
         num_samples = len(endog_data)
         for t in range(start_pt, num_samples):
             endog_history = (endog_data[:t] if self.bptt is None else endog_data[t - self.bptt:t])
-            model = ARIMA(endog_history, order=self.order).fit(disp=0)
-            predicted_forecast = np.append(predicted_forecast, model.forecast()[0])
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                model = ARIMA(endog_history, order=self.order).fit(disp=0)
+                predicted_forecast = np.append(predicted_forecast, model.forecast()[0])
         true_forecast = endog_data[start_pt:]
         return true_forecast, predicted_forecast
 

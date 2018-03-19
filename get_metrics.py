@@ -12,7 +12,6 @@ class get_metrics:
         ts = pd.Series(y,name=name)
         ts.plot()
         fig.savefig(name)
-        # plt.show()
 
     def apv_single_asset(self, y_true, weights, pv_0 = 1, get_graph = False):
         """
@@ -118,7 +117,7 @@ class get_metrics:
             else:
                 drawdowns.append((trough - peak) / peak)
                 peak = del_pv[idx]
-        return max(drawdowns[1:])
+        return max(drawdowns[1:]) if len(drawdowns) > 0 else 0.0
 
 """
 if __name__ == "__main__":
