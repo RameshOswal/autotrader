@@ -2,4 +2,4 @@ __pycache__
 dataset/
 .idea
 *.pyc
-
+*.png
