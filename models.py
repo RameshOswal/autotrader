@@ -55,8 +55,12 @@ class ARIMAModel:
             endog_history = (endog_data[:t] if self.bptt is None else endog_data[t - self.bptt:t])
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                model = ARIMA(endog_history, order=self.order).fit(disp=0)
-                predicted_forecast = np.append(predicted_forecast, model.forecast()[0])
+                try:
+                    model = ARIMA(endog_history, order=self.order).fit(disp=0)
+                    predicted_forecast = np.append(predicted_forecast, model.forecast()[0])
+                except Exception:
+                    # Model unable to fit, fall back to MA
+                    predicted_forecast = np.append(predicted_forecast, np.mean(endog_history))
         true_forecast = endog_data[start_pt:]
         return true_forecast, predicted_forecast
 
