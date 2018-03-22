@@ -1,17 +1,7 @@
 from data_load import DataPreprocess
 from models import ARIMAModel
 from get_metrics import get_metrics
-import numpy as np
-
-ASSET_LIST = ['BTC_BTCD',
-'BTC_DASH',
-'BTC_ETH',
-'BTC_FCT',
-'BTC_LTC',
-'BTC_XEM',
-'BTC_XMR',
-'BTC_XRP',
-'USDT_BTC']
+from Literals import ASSET_LIST
 
 if __name__=='__main__':
     dp = DataPreprocess()
