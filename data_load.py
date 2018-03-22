@@ -76,7 +76,7 @@ class DataPreprocess:
             train_date = "_".join(self.train_dates[i])
             test_date  = "_".join(self.test_dates[i])
             print("***************** Loading ", feature_type, " for Asset:", asset_name, " for data:", datatype, " for Train Dates:", train_date, " for Test Dates:", test_date)
-            yield train_data[train_date], test_data[test_date]
+            yield train_data[train_date], test_data[test_date], train_date, test_date
 
     def dropna(self):
         newdataset = {}

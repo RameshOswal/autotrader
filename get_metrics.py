@@ -5,13 +5,14 @@ from matplotlib import pyplot as plt
 import pandas as pd
 
 class get_metrics:
-    def __init__(self): pass
+    def __init__(self, dt_range):
+        self.dt_range = dt_range
 
     def graph_output(self, y, name):
         fig = plt.figure()
         ts = pd.Series(y,name=name)
-        ts.plot()
-        fig.savefig(name)
+        ts.plot(x = "Time", y = name, title = "{} for Test Data from {} to {}".format(name, self.dt_range.split("_")[0], self.dt_range.split("_")[1]))
+        fig.savefig("{}_{}".format(name, self.dt_range))
 
     def apv_single_asset(self, y_true, weights, pv_0 = 1, get_graph = False):
         """
@@ -85,8 +86,8 @@ class get_metrics:
         mdd = self.mdd_vals_multiple_asset(del_portfolio)
 
         if get_graph:
-            self.graph_output(del_portfolio, "ratios")
-            self.graph_output(sharpe_ratio, "sharpe_ratio")
+            self.graph_output(del_portfolio, "APV")
+            self.graph_output(sharpe_ratio, "Sharpe Ratio")
 
         print("MDD = {}, fAPV = {}".format(mdd, portfolio_val))
 
