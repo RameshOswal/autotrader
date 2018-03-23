@@ -14,7 +14,7 @@ FETCH_URL = "https://poloniex.com/public?command=returnChartData&currencyPair=%s
 DATA_DIR = "data/stock"
 COLUMNS = ["date","high","low","open","close","volume","quoteVolume","weightedAverage"]
 
-def get_data(pair, start, end, mode = "train"):
+def get_data(pair, start, end, mode = "train", return_df=False):
     datafile = os.path.join(DATA_DIR + "/{}".format(mode), pair)
     timefile = os.path.join(DATA_DIR + "/{}".format(mode), pair)
 
@@ -31,7 +31,8 @@ def get_data(pair, start, end, mode = "train"):
     print("Get %s from %d to %d" % (pair, start_time, end_time))
 
     df = pd.read_json(url, convert_dates = True)
-
+    if return_df == True:
+        return df
     #import pdb;pdb.set_trace()
 
     if df["date"].iloc[-1] == 0:
@@ -145,7 +146,7 @@ def check_function(ticker = "MSFT"):
 
     df = get_google_finance_intraday(ticker=ticker, period=300, days=60)
     df.to_csv("{}_stock_price.csv".format(ticker))
-    print df.head(), len(df)
+    print(df.head(), len(df))
 
 if __name__ == '__main__':
     # stock_lst = ["MSFT", "AMZN", "FB", "AAPL", "GOOGL"]
