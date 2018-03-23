@@ -1,7 +1,7 @@
-from data_load import DataPreprocess
-from models import ARIMAModel
+from data_load.load_crypto import DataPreprocess
+from models.arima_model import ARIMAModel
 from get_metrics import get_metrics
-from Literals import ASSET_LIST
+from literals import ASSET_LIST
 
 if __name__=='__main__':
     dp = DataPreprocess()

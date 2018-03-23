@@ -1,5 +1,3 @@
-__author__ = "deeptrader"
-
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
@@ -13,6 +11,7 @@ class get_metrics:
         ts = pd.Series(y,name=name)
         ts.plot(x = "Time", y = name, title = "{} for Test Data from {} to {}".format(name, self.dt_range.split("_")[0], self.dt_range.split("_")[1]))
         fig.savefig("{}_{}".format(name, self.dt_range))
+        plt.close()
 
     def apv_single_asset(self, y_true, weights, pv_0 = 1, get_graph = False):
         """
@@ -119,13 +118,4 @@ class get_metrics:
                 drawdowns.append((trough - peak) / peak)
                 peak = del_pv[idx]
         return max(drawdowns[1:]) if len(drawdowns) > 0 else 0.0
-
-"""
-if __name__ == "__main__":
-    test = get_metrics()
-    test.apv_single_asset(np.random.uniform(low = 2, high = 10, size = 125), np.random.randint(low = 1, high=4, size=125), lbl_dict={1 : 0.99, 2: 1, 3: 1.01}, get_graph=True)
-if __name__ == "__main__":
-    test = get_metrics()
-    test.apv_multiple_asset(np.random.uniform(low = 0, high = 1, size = [99, 3]), np.random.uniform(low = 0, high=1, size=[100, 4]), get_graph=True)
-"""
 
