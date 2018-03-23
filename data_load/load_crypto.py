@@ -1,4 +1,5 @@
 import os
+import autotrader.literals
 
 def fileInfo(pathname="dataset/poloneix_data\\BTC_BTCD.csv-2014-07-01 00_00_00-2016-05-07 00_00_00"):
     basename = os.path.basename(pathname)
