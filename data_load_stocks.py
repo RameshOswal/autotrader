@@ -47,17 +47,18 @@ class DataPreprocess:
         if path.strip() == "":
             path = os.path.join(self.output_folder_name, self.processed_file_name)
         self.dataset = pd.read_csv(path)
-    def load_train_test(self, feature_type='OPEN', asset_name="FB",path="", train_test_ratio=0.8):
+
+    def load_train_test(self, feature_type='OPEN', asset_name="FB", path="", train_test_ratio=0.8):
         if path.strip() == "":
             path = os.path.join(self.output_folder_name, self.processed_file_name)
 
         if self.dataset.size == 0:
             self.load_preprocessed(path)
 
-        if type(feature_type) == str:
+        if type(asset_name) == str:
             value = self.dataset[asset_name+"_"+feature_type]
         else: #For multuple assets_data
-            value = self.dataset[[asset_name+"_"+feature_name for feature_name in feature_type]]
+            value = self.dataset[[name+"_"+feature_type for name in asset_name]]
 
         row_count = value.shape[0]
         num_train_rows = int(row_count * train_test_ratio)
@@ -75,5 +76,5 @@ if __name__=='__main__':
     data.asset_names()
     tr, te = data.load_train_test()
     print(tr.head(2), te.head(2))
-    tr, te = data.load_train_test(feature_type=['OPEN','CLOSE'], train_test_ratio=0.5, path='preprocessed_Stock_data.csv')
+    tr, te = data.load_train_test(asset_name=['FB','AAPL'] ,feature_type='OPEN', train_test_ratio=0.5, path='preprocessed_Stock_data.csv')
     print(tr.head(2), te.head(2))
