@@ -28,6 +28,8 @@ def get_streaming_crypto(asset_name=['BTC_BTCD', 'BTC_DASH', 'BTC_ETH',
 			time.sleep(2)
 			pass #just wait till 50 seconds pass
 
-if __name__=="__main__":
+# if __name__ == "__main__":
+if __name__ == '__main__':
 	for data in get_streaming_crypto(asset_name='BTC_BTCD'):
+		print(data.head(1))
 		print(data.shape)
