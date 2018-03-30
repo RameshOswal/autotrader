@@ -1,5 +1,6 @@
 import os
-import autotrader.literals
+
+#import autotrader.literals
 
 def fileInfo(pathname="dataset/poloneix_data\\BTC_BTCD.csv-2014-07-01 00_00_00-2016-05-07 00_00_00"):
     basename = os.path.basename(pathname)
@@ -59,7 +60,7 @@ class DataPreprocess:
         return dataset
 
 
-    def load_train_test(self, feature_type='open', datatype="bffill_", asset_name="BTC_XEM", path=""):
+    def load_train_test(self, feature_type='open', datatype="bffill_", asset_name="BTC_XEM", path="../dataset/Poloneix_Preprocessednew"):
         dataset = self.load_dataset(file_prefix=datatype, dataset_path=path)
         train_data, test_data = {}, {}
         for key in dataset:
@@ -138,7 +139,7 @@ if __name__=='__main__':
         print(tr.values.shape)
         print(te.values.shape)
         break
-    for tr, te, in data.load_train_test(path="../dataset/Poloneix_Preprocessednew", asset_name=['BTC_LTC', 'BTC_XEM'], feature_type='weightedAverage'):
+    for tr, te, in data.load_train_test(asset_name=['BTC_LTC', 'BTC_XEM'], feature_type='weightedAverage'):
         print(tr.values.shape)
         print(te.values.shape)
         break
@@ -148,4 +149,3 @@ if __name__=='__main__':
     # save_dataset_files(df, basepath=output_folder_name, name_prefix="bffill")
     # data.preprocess(dates=data.train_dates, file='train', path_postfix="train")
     # data.preprocess(dates=data.test_dates, file='test', path_postfix="test")
-    
