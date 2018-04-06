@@ -14,7 +14,7 @@ import os
 def save_dataset_files(dataset, basepath="", name_prefix=""):
     for file in dataset:
         filename = name_prefix+'_'+file+'.csv'
-        print("**************** Saving ", filename, "*************************")
+        # print("**************** Saving ", filename, "*************************")
         train_df = dataset[file]
         train_df.to_csv(
             path_or_buf=os.path.join(basepath, filename),
@@ -39,7 +39,7 @@ class DataPreprocess:
 #        self.datasetContains = "" #Variable holding type of dataset in self.dataset "" means normal preprocessed, bffill_ means imputated processed
 
     def load_dataset(self, file_prefix="", dataset_path=""):
-        print("*******************Trying to load old files:")
+        # print("*******************Trying to load old files:")
         if dataset_path.strip() == "":
             dataset_path = self.output_folder_name
         file_name_list = []
@@ -54,8 +54,8 @@ class DataPreprocess:
                 name = os.path.basename(path)
                 dataset['test_'+start+'_'+end] = pd.read_csv(path, header=0, index_col=0)
                 file_name_list += [name]
-        if len(file_name_list) != 0:
-            print("******************* Following files were found to be present and loaded in dataset:" + "\n\t".join(file_name_list))
+        # if len(file_name_list) != 0:
+            # print("******************* Following files were found to be present and loaded in dataset:" + "\n\t".join(file_name_list))
         return dataset
 
 
@@ -78,7 +78,7 @@ class DataPreprocess:
         for i in range(len(self.train_dates)):
             train_date = "_".join(self.train_dates[i])
             test_date  = "_".join(self.test_dates[i])
-            print("***************** Loading ", feature_type, " for Asset:", asset_name, " for data:", datatype, " for Train Dates:", train_date, " for Test Dates:", test_date)
+            # print("***************** Loading ", feature_type, " for Asset:", asset_name, " for data:", datatype, " for Train Dates:", train_date, " for Test Dates:", test_date)
             yield train_data[train_date], test_data[test_date], train_date, test_date
 
     def dropna(self):
@@ -100,7 +100,7 @@ class DataPreprocess:
             self.assets.add(filename)
 
     def preprocess(self, dates=[], file='train', path_postfix=""):
-        print("********************Preprocessing: ", file)
+        # print("********************Preprocessing: ", file)
         for start_date, end_date in dates:
             train_df = pd.DataFrame()
             for asset in self.assets:
@@ -112,7 +112,7 @@ class DataPreprocess:
                         df.columns = [file_name + '_' + str(i) if i !='date' else 'date' for i in df.columns]
                         # train_df = pd.concat((train_df , df), axis=1) if train_df.shape[0] else df
                         train_df = pd.merge(train_df, df, how='outer', on='date') if train_df.shape[0] else df
-                else :
-                    print("************Warning: Data Missing for ", asset, " between ", start_date, " to ", end_date, "**************" )
-            print("********************************Saving File :"" between ", start_date, " to ", end_date, ' ***************************' )
+                else : pass
+                    # print("************Warning: Data Missing for ", asset, " between ", start_date, " to ", end_date, "**************" )
+            # print("********************************Saving File :"" between ", start_date, " to ", end_date, ' ***************************' )
             self.dataset[file+'_'+start_date+'_'+end_date] = train_df

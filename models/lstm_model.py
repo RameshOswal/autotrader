@@ -49,6 +49,7 @@ class LSTMModel:
         self.logits
         self.loss
         self.optimize
+        self.prediction
 
     def lstm_cell(self, dropout):
         return tf.nn.rnn_cell.DropoutWrapper(
@@ -74,11 +75,15 @@ class LSTMModel:
         return net
 
     @lazy_property
+    def prediction(self):
+        return tf.nn.softmax(self.logits,dim=2)
+
+
+    @lazy_property
     def loss(self):
-        portfolio_weights = tf.nn.softmax(self.logits,dim=2)
-        portfolio_ts = tf.multiply(portfolio_weights, self.target)
+        portfolio_ts = tf.multiply(self.prediction, self.target)
         portfolio_comb = tf.reduce_sum(portfolio_ts, axis=2)
-        apv_batch = tf.reduce_prod(portfolio_comb,axis=1)
+        apv_batch = tf.reduce_prod(portfolio_comb,axis=1)*tf.constant(100.0)
         apv_mean = tf.reduce_mean(apv_batch)
         return -apv_mean
 

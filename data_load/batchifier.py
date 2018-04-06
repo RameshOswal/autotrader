@@ -26,8 +26,8 @@ class batchify:
             high, low, close = vals[0][0], vals[1][0], vals[-1][0]
 
             # Batch IDs, Multiplying with bptt parameter to ensure non-overlapping batches
-            shuffle_ids = np.arange(start=0, stop=len(high) // bptt + 1)
-            shuffle_ids *= bptt
+            shuffle_ids = np.arange(start=0, stop=len(high) - bptt )
+            # shuffle_ids *= bptt
 
             # np.random.shuffle(shuffle_ids)
             num_batches = len(shuffle_ids) // bsz + 1
@@ -37,11 +37,10 @@ class batchify:
 
                 # X.shape => (bptt X num_features X num_assets), y.shape => (bptt X num_assets)
                 X = np.zeros(shape = (bptt, 3, len(asset_list)))
-                y = np.zeros(shape = (bptt, len(asset_list) + 1))
+                y = np.zeros(shape = (bptt, len(asset_list)))
 
                 # X.shape => (bsz X bptt X num_assets), y.shape => (bsz X bptt X num_assets)
                 X = X[np.newaxis, :]
-                y = y[np.newaxis, :]
 
                 for s_idx in s_ids:
                     if normalize:
@@ -57,11 +56,14 @@ class batchify:
                     out = np.array([h_batch.as_matrix(), l_batch.as_matrix(), c_batch.as_matrix()])
 
                     if len(h_batch) != bptt: continue
-                    y = close.iloc[s_idx + 1: s_idx + bptt + 1, :].as_matrix()
-                    y = np.vstack((y, [1] * bptt))
 
+                    y = close.iloc[s_idx + 1: s_idx + bptt + 1, :].as_matrix() / c_batch
+                    y = np.pad(y , [(0, 0), (0,1)], constant_values=1, mode="constant")
+                    y = y[np.newaxis, :]
+                    # print(y)
                     X = np.vstack((X, np.reshape(out.transpose([1, 0, 2]), [1, len(h_batch), 3, len(asset_list)])))
                     y = np.vstack((y, np.reshape(y, [1, len(h_batch), len(asset_list) + 1])))
+
                 yield X[1:, :, :, :], y[1:, :, :]
 
 
