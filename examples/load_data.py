@@ -102,8 +102,11 @@ class batchify:
         """
         return self.dp.load_train_test(asset_name = asset_list, feature_type = name)
 
+"""
 if __name__ == '__main__':
     a = batchify()
     a.load_train()
+
+"""
 
 
