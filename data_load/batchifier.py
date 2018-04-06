@@ -114,7 +114,7 @@ class batchify:
 """
 if __name__ == '__main__':
     a = batchify()
-    a.load_test()
+    a.load_train()
 """
 
 
