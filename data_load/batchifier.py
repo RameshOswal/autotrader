@@ -112,4 +112,3 @@ class batchify:
         """
         return self.dp.load_train_test(asset_name = asset_list, feature_type = name)
 
-
