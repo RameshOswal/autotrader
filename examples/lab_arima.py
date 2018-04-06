@@ -6,6 +6,7 @@ from literals import ASSET_LIST
 if __name__=='__main__':
     dp = DataPreprocess()
     for train_iter, test_iter, train_date, test_date in dp.load_train_test(asset_name=ASSET_LIST,feature_type='close'):
+        print(train_date)
         ts_data = 1000 * train_iter.values
         model = ARIMAModel(1, 1, 0, -1, 50)
         ytrue, ypred = model.evaluate(ts_data[:100], 50)

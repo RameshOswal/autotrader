@@ -2,8 +2,8 @@ __author__ = "deeptrader"
 
 import tensorflow as tf
 import numpy as np
-from autotrader.data_load.load_crypto import DataPreprocess
-from autotrader.literals import ASSET_LIST
+from data_load.load_crypto import DataPreprocess
+from literals import ASSET_LIST
 
 class batchify:
     def __init__(self):
@@ -15,7 +15,9 @@ class batchify:
         return X.divide(X_c.values)
 
     def load_train(self, bsz = 100, bptt = 50, asset_list = ASSET_LIST):
-        for vals in zip(self.loader("high", asset_list=asset_list), self.loader("low", asset_list=asset_list), self.loader("close", asset_list=asset_list)):
+        for vals in zip(self.loader("high", asset_list=asset_list),
+                        self.loader("low", asset_list=asset_list),
+                        self.loader("close", asset_list=asset_list)):
             high, low, close = vals[0][0], vals[1][0], vals[-1][0]
             shuffle_ids = np.arange(start=0, stop=len(high) - bptt)
             np.random.shuffle(shuffle_ids)
@@ -58,10 +60,8 @@ class batchify:
     def loader(self, name, asset_list = ASSET_LIST):
         return self.dp.load_train_test(asset_name = asset_list, feature_type = name)
 
-"""
 if __name__ == '__main__':
     a = batchify()
     a.load_train()
-"""
 
 

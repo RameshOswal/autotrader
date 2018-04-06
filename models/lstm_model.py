@@ -38,7 +38,7 @@ class LSTMModel:
         tf.reset_default_graph()
         with tf.name_scope('inputs'):
             self.data = tf.placeholder(tf.float32, [None, bptt, num_features, num_assets], name="data_")
-            self.target = tf.sparse_placeholder(tf.int32, name="target_")
+            self.target = tf.placeholder(tf.float32, [None, bptt, num_assets], name="target_")
             self._is_training = tf.placeholder(tf.bool)
         self._num_hid = num_hid
         self._clip_norm = clip_norm
@@ -59,26 +59,23 @@ class LSTMModel:
 
     @lazy_property
     def logits(self):
-        with tf.name_scope("network"):
-            net = self.data
-            with tf.name_scope("LSTM_Cell"):
-                # Stacked LSTM cell
-                net_outs = []
-                for i in range(self._num_assets):
-                    net_i, _ = tf.nn.dynamic_rnn(self.lstm_cell(0.5),
-                                                 net[:,:,:,i], dtype=tf.float32)
-                    net_outs.append(net_i[:,-1,:])
-                net = tf.stack(net_outs)
-                net = tf.reshape(net, [-1, 1, self._num_hid, self._num_assets])
+        net = self.data
+        shape = net.get_shape().as_list()
+        net = tf.reshape(net, [-1, shape[1], shape[2]*shape[3]])
+        with tf.name_scope("LSTM_Cell"):
+            # Stacked LSTM cell
+            net, _ = tf.nn.dynamic_rnn(self.lstm_cell(0.5),
+                                         net, dtype=tf.float32)
         return net
 
     @lazy_property
     def loss(self):
-        pass
-        # ctc_logits = tf.transpose(self.logits, (1, 0, 2))
-        # loss = tf.nn.ctc_loss(self.target, ctc_logits, self.seqlen)
-        # loss = tf.reduce_mean(loss)
-        # return loss
+        portfolio_weights = tf.nn.softmax(self.logits)
+        portfolio_ts = tf.multiply(portfolio_weights, self.target)
+        portfolio_values = tf.reduce_prod(portfolio_ts,axis=1)
+        pv_change = tf.reduce_mean(portfolio_values - tf.constant(1.0))
+        return -pv_change
+
 
     @lazy_property
     def optimize(self):
