@@ -59,7 +59,7 @@ class DataPreprocess:
         return dataset
 
 
-    def load_train_test(self, feature_type='open', datatype="bffill_", asset_name="BTC_XEM", path="../../dataset/Poloneix_Preprocessednew"):
+    def load_train_test(self, feature_type='open', datatype="bffill_", asset_name="BTC_XEM", path="../../dataset/Poloneix_Preprocessednew", idx = 0):
         dataset = self.load_dataset(file_prefix=datatype, dataset_path=path)
         train_data, test_data = {}, {}
         for key in dataset:
@@ -75,11 +75,11 @@ class DataPreprocess:
                 train_data[cur_date] = values
             else:
                 test_data[cur_date] = values
-        for i in range(len(self.train_dates)):
-            train_date = "_".join(self.train_dates[i])
-            test_date  = "_".join(self.test_dates[i])
-            # print("***************** Loading ", feature_type, " for Asset:", asset_name, " for data:", datatype, " for Train Dates:", train_date, " for Test Dates:", test_date)
-            yield train_data[train_date], test_data[test_date], train_date, test_date
+        # for i in range(len(self.train_dates)):
+        train_date = "_".join(self.train_dates[idx])
+        test_date  = "_".join(self.test_dates[idx])
+        # print("***************** Loading ", feature_type, " for Asset:", asset_name, " for data:", datatype, " for Train Dates:", train_date, " for Test Dates:", test_date)
+        return train_data[train_date], test_data[test_date]
 
     def dropna(self):
         newdataset = {}
