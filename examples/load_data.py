@@ -52,16 +52,18 @@ class batchify:
                         l_batch = low.iloc[s_idx: s_idx + bptt, :]
                         c_batch = close.iloc[s_idx: s_idx + bptt, :]
 
-
                     # Convert all three to matrix form, out.shape => (num_features X bptt X num_assets)
                     out = np.array([h_batch.as_matrix(), l_batch.as_matrix(), c_batch.as_matrix()])
 
-                    X = np.vstack((X, np.reshape(out.transpose([1, 0, 2]), [1, bptt, 3, len(asset_list)])))
-                    y = np.vstack((y, np.reshape(close.iloc[s_idx + 1: s_idx + bptt + 1, :].as_matrix(), [1, bptt, len(asset_list)])))
+                    if len(h_batch) != bptt: continue
 
-                return X[1:, :, :, :], y[1:, :, :]
+                    X = np.vstack((X, np.reshape(out.transpose([1, 0, 2]), [1, len(h_batch), 3, len(asset_list)])))
+                    y = np.vstack((y, np.reshape(close.iloc[s_idx + 1: s_idx + bptt + 1, :].as_matrix(), [1, len(h_batch), len(asset_list)])))
 
-    def load_test(self, bsz = 100, bptt = 50, asset_list = ASSET_LIST):
+                yield X[1:, :, :, :], y[1:, :, :]
+
+
+    def load_test(self, bsz = 16, bptt = 50, asset_list = ASSET_LIST, normalize = False):
         for vals in zip(self.loader("high", asset_list = asset_list), self.loader("low", asset_list = asset_list), self.loader("close", asset_list = asset_list)):
             high, low, close = vals[0][1], vals[1][1], vals[-1][1]
 
@@ -78,18 +80,25 @@ class batchify:
                 # X.shape => (bptt X num_features X num_assets)
                 X = np.zeros(shape=(bptt, 3, len(asset_list)))
 
-                # X.shape => (bsz X bptt X num_features X num_assets)
+                # X.shape => (bsz X bptt X num_assets)
                 X = X[np.newaxis, :]
 
                 for s_idx in s_ids:
-                    h_batch = self.create_batches(high.iloc[s_idx: s_idx + bptt, :], close.iloc[s_idx + bptt - 1, :])
-                    l_batch = self.create_batches(low.iloc[s_idx: s_idx + bptt, :], close.iloc[s_idx + bptt - 1, :])
-                    c_batch = self.create_batches(close.iloc[s_idx: s_idx + bptt, :], close.iloc[s_idx + bptt - 1, :])
+                    if normalize:
+                        h_batch = self.create_batches(high.iloc[s_idx: s_idx + bptt, :], close.iloc[s_idx + bptt - 1, :])
+                        l_batch = self.create_batches(low.iloc[s_idx: s_idx + bptt, :], close.iloc[s_idx + bptt - 1, :])
+                        c_batch = self.create_batches(close.iloc[s_idx: s_idx + bptt, :], close.iloc[s_idx + bptt - 1, :])
+                    else:
+                        h_batch = high.iloc[s_idx: s_idx + bptt, :]
+                        l_batch = low.iloc[s_idx: s_idx + bptt, :]
+                        c_batch = close.iloc[s_idx: s_idx + bptt, :]
 
                     # Convert all three to matrix form, out.shape => (num_features X bptt X num_assets)
                     out = np.array([h_batch.as_matrix(), l_batch.as_matrix(), c_batch.as_matrix()])
 
-                    X = np.vstack((X, np.reshape(out.transpose([1, 0, 2]), [1, bptt, 3, len(asset_list)])))
+                    if len(h_batch) != bptt: continue
+
+                    X = np.vstack((X, np.reshape(out.transpose([1, 0, 2]), [1, len(h_batch), 3, len(asset_list)])))
 
                 yield X[1:, :, :, :]
 
@@ -102,11 +111,11 @@ class batchify:
         """
         return self.dp.load_train_test(asset_name = asset_list, feature_type = name)
 
-"""
+# """
 if __name__ == '__main__':
     a = batchify()
-    a.load_train()
-
-"""
+    a.load_test()
+#
+# """
 
 
