@@ -1,5 +1,5 @@
-from autotrader.data_load.batchifier import batchify
-from autotrader.models.lstm_model import LSTMModel, tf
+from data_load.batchifier import batchify
+from models.lstm_model import LSTMModel, tf
 
 if __name__ == '__main__':
     batch_gen = batchify()

@@ -38,7 +38,7 @@ class LSTMModel:
         tf.reset_default_graph()
         with tf.name_scope('inputs'):
             self.data = tf.placeholder(tf.float32, [None, bptt, num_features, num_assets], name="data_")
-            self.target = tf.placeholder(tf.float32, [None, bptt, num_assets], name="target_")
+            self.target = tf.placeholder(tf.float32, [None, bptt, num_assets + 1], name="target_")
             self._is_training = tf.placeholder(tf.bool)
         self._num_hid = num_hid
         self._clip_norm = clip_norm
@@ -69,17 +69,18 @@ class LSTMModel:
                                          net, dtype=tf.float32)
         with tf.name_scope("Output_dense"):
             net = tf.reshape(net, [-1, self._num_hid])
-            net = tf.layers.dense(net, self._num_assets)
-            net = tf.reshape(net, [-1, self._bptt, self._num_assets])
+            net = tf.layers.dense(net, self._num_assets + 1)
+            net = tf.reshape(net, [-1, self._bptt, self._num_assets + 1])
         return net
 
     @lazy_property
     def loss(self):
-        portfolio_weights = tf.nn.softmax(self.logits,axis=2)
+        portfolio_weights = tf.nn.softmax(self.logits,dim=2)
         portfolio_ts = tf.multiply(portfolio_weights, self.target)
-        portfolio_values = tf.reduce_prod(portfolio_ts,axis=1)
-        pv_change = tf.reduce_mean(portfolio_values - tf.constant(1.0))
-        return -pv_change
+        portfolio_comb = tf.reduce_sum(portfolio_ts, axis=2)
+        apv_batch = tf.reduce_prod(portfolio_comb,axis=1)
+        apv_mean = tf.reduce_mean(apv_batch)
+        return -apv_mean
 
 
     @lazy_property

@@ -1,4 +1,3 @@
-import Literals
 import os
 
 from glob import glob

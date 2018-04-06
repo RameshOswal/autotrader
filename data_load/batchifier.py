@@ -1,8 +1,8 @@
 __author__ = "deeptrader"
 
 import numpy as np
-from autotrader.data_load.load_crypto import DataPreprocess
-from autotrader.literals import ASSET_LIST
+from data_load.load_crypto import DataPreprocess
+from literals import ASSET_LIST
 
 class batchify:
     def __init__(self):
@@ -37,7 +37,7 @@ class batchify:
 
                 # X.shape => (bptt X num_features X num_assets), y.shape => (bptt X num_assets)
                 X = np.zeros(shape = (bptt, 3, len(asset_list)))
-                y = np.zeros(shape = (bptt, len(asset_list)))
+                y = np.zeros(shape = (bptt, len(asset_list) + 1))
 
                 # X.shape => (bsz X bptt X num_assets), y.shape => (bsz X bptt X num_assets)
                 X = X[np.newaxis, :]
@@ -57,10 +57,11 @@ class batchify:
                     out = np.array([h_batch.as_matrix(), l_batch.as_matrix(), c_batch.as_matrix()])
 
                     if len(h_batch) != bptt: continue
+                    y = close.iloc[s_idx + 1: s_idx + bptt + 1, :].as_matrix()
+                    y = np.vstack((y, [1] * bptt))
 
                     X = np.vstack((X, np.reshape(out.transpose([1, 0, 2]), [1, len(h_batch), 3, len(asset_list)])))
-                    y = np.vstack((y, np.reshape(close.iloc[s_idx + 1: s_idx + bptt + 1, :].as_matrix(), [1, len(h_batch), len(asset_list)])))
-
+                    y = np.vstack((y, np.reshape(y, [1, len(h_batch), len(asset_list) + 1])))
                 yield X[1:, :, :, :], y[1:, :, :]
 
 
