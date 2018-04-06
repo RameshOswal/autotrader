@@ -45,6 +45,7 @@ class LSTMModel:
         self.tf_init = tf.global_variables_initializer
         self._num_features = num_features
         self._num_assets = num_assets
+        self._bptt = bptt
         self.logits
         self.loss
         self.optimize
@@ -66,6 +67,10 @@ class LSTMModel:
             # Stacked LSTM cell
             net, _ = tf.nn.dynamic_rnn(self.lstm_cell(0.5),
                                          net, dtype=tf.float32)
+        with tf.name_scope("Output_dense"):
+            net = tf.reshape(net, [-1, self._num_hid])
+            net = tf.layers.dense(net, self._num_assets)
+            net = tf.reshape(net, [-1, self._bptt, self._num_assets])
         return net
 
     @lazy_property
