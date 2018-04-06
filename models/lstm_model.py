@@ -34,7 +34,7 @@ class LSTMModel:
             clip_norm=0.25,
             num_features=3,
             num_assets=9,
-            bptt=50):
+            bptt=5):
         tf.reset_default_graph()
         with tf.name_scope('inputs'):
             self.data = tf.placeholder(tf.float32, [None, bptt, num_features, num_assets], name="data_")
@@ -75,7 +75,7 @@ class LSTMModel:
 
     @lazy_property
     def loss(self):
-        portfolio_weights = tf.nn.softmax(self.logits)
+        portfolio_weights = tf.nn.softmax(self.logits,axis=2)
         portfolio_ts = tf.multiply(portfolio_weights, self.target)
         portfolio_values = tf.reduce_prod(portfolio_ts,axis=1)
         pv_change = tf.reduce_mean(portfolio_values - tf.constant(1.0))

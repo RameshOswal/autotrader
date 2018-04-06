@@ -1,8 +1,8 @@
 __author__ = "deeptrader"
 
 import numpy as np
-from data_load.load_crypto import DataPreprocess
-from literals import ASSET_LIST
+from autotrader.data_load.load_crypto import DataPreprocess
+from autotrader.literals import ASSET_LIST
 
 class batchify:
     def __init__(self):
