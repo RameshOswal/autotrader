@@ -23,7 +23,6 @@ class DataPreprocess:
 
 
     def save_dataset(self, filename):
-        print("***************Saving DataSet***********")
         filename = os.path.join(self.output_folder_name,filename)
         self.dataset.to_csv(filename)
 
@@ -33,9 +32,7 @@ class DataPreprocess:
         for path in glob(self.input_folder_name+'/*'):
             filename = os.path.basename(path)
             stock_name = filename.split('_')[0] # e.g. filename is AAPL_stock_price
-            print("******************Loading Stock:" + stock_name+" *****************")
             df = pd.read_csv(path, header=0)
-            print("*******************File Size: ", df.shape)
             df.columns = [str.upper(stock_name+'_'+col_name) if col_name!='Date' else str.upper(col_name) for col_name in df.columns]
             dataset = dataset.merge(df, how='outer', on='DATE') if dataset.size != 0 else df
         self.dataset = dataset

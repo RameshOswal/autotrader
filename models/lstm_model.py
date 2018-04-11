@@ -48,6 +48,7 @@ class LSTMModel:
         self._bptt = bptt
         self.logits
         self.loss
+        self.apv
         self.optimize
         self.prediction
 
@@ -83,10 +84,13 @@ class LSTMModel:
     def loss(self):
         portfolio_ts = tf.multiply(self.prediction, self.target)
         portfolio_comb = tf.reduce_sum(portfolio_ts, axis=2)
-        apv_batch = tf.reduce_prod(portfolio_comb,axis=1)*tf.constant(100.0)
+        apv_batch = tf.reduce_prod(portfolio_comb,axis=1)
         apv_mean = tf.reduce_mean(apv_batch)
         return -apv_mean
 
+    @lazy_property
+    def apv(self):
+        return -self.loss
 
     @lazy_property
     def optimize(self):

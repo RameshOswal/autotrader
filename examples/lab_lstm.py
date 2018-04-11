@@ -3,7 +3,7 @@ from models.lstm_model import LSTMModel, tf
 
 if __name__ == '__main__':
     log_at = 50
-    batch_gen = batchify()
+    batch_gen = batchify("../dataset/Poloneix_Preprocessednew")
     model = LSTMModel(num_hid=20,bptt=200)
     with tf.Session() as sess:
         sess.run(model.tf_init())
@@ -16,7 +16,7 @@ if __name__ == '__main__':
                     model.target: bTrainY,
                     model._is_training: True
                 })
-                apv.append(-sess.run(model.loss, {
+                apv.append(sess.run(model.apv, {
                     model.data: bTrainX,
                     model.target: bTrainY,
                     model._is_training: False

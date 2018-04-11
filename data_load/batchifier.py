@@ -5,10 +5,11 @@ from data_load.load_crypto import DataPreprocess
 from literals import ASSET_LIST
 
 class batchify:
-    def __init__(self):
+    def __init__(self, data_path="."):
         self.dp = DataPreprocess()
         self.train_dates = self.dp.train_dates
         self.test_dates = self.dp.test_dates
+        self.data_path = data_path
 
     def create_batches(self, X, X_c):
         """Divide the prices by the closing price to get Price Relative Vector"""
@@ -118,5 +119,5 @@ class batchify:
         :param asset_list: Number of assets to keep
         :return: (Generator iterates for all the date ranges) Dataframe where each column is an asset. Number of records is for the entire date range.
         """
-        return self.dp.load_train_test(asset_name = asset_list, feature_type = name, idx=idx)
+        return self.dp.load_train_test(asset_name = asset_list, feature_type = name, idx=idx, path=self.data_path)
 
