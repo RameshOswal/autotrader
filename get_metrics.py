@@ -60,25 +60,35 @@ class get_metrics:
 
     def apv_multiple_asset(self, y_true, weights, pv_0 = 1, get_graph = False):
         """
-        :param y_true: true closing/opening value all the stocks/crypto
-        :param weights: denotes decision taken at each time step for all stock/crypto
+        :param y_true: time_steps X num_assets
+        :param weights: time_steps X num_assets
         :return: MDD, final portfolio value, SR
         """
-        assert len(y_true) == len(weights) - 1 and len(y_true[0]) == len(weights[0]) - 1, "Dimension Mismatch!, Length of True labels {} != Decision length {}".format(len(y_true), len(weights))
+        assert y_true.shape == weights.shape, "Dimension Mismatch!, True labels {} != Weights {}".format(y_true.shape, weights.shape)
 
         y_mod = np.ndarray(shape = weights.shape)
         y_mod[:,0] = 1
         y_mod[:-1, 1:] = y_true
         y_mod[-1, :] = 1
 
-        rp_vector = np.array([[1] * weights.shape[1]] + [np.divide(y , x) for (x, y) in zip(y_mod[:, :], y_mod[1:, :])])
-        portfolio_val = pv_0 * np.product([np.dot(r , w) for (r, w) in zip(rp_vector, weights)])
+        # rp_vector => (time_steps - 1) X num_assets
+        rp_vector = np.array([np.divide(x , y) for (x, y) in zip(y_mod[1:, :], y_mod[:-1, :])])
 
-        # Finding change in portfolio values for sharpe ratio
-        del_portfolio = np.ndarray(shape = (rp_vector.shape[0] + 1,))
-        del_portfolio[0] = 1.0
-        for idx in range(1, del_portfolio.shape[0]):
-            del_portfolio[idx] = np.dot(del_portfolio[idx - 1] , np.dot(rp_vector[idx - 1, :] , weights[idx - 1, :]))
+        # final portfolio value => scalar. At any time t, fAPV = p_initial * _prod { rp_{t} * w_{t - 1}}
+        portfolio_val = pv_0 * np.product([np.dot(r , w) for (r, w) in zip(rp_vector, weights[:-1, :])])
+
+
+        # Finding change in portfolio values
+
+        # time_steps = total_time_steps
+        time_steps = rp_vector.shape[0] + 1
+
+        del_portfolio = np.ndarray(shape = (time_steps,))
+        # Initial value of portfolio = pv_0
+        del_portfolio[0] = pv_0
+
+        for idx in range(1, time_steps):
+            del_portfolio[idx] = del_portfolio[idx - 1] * np.dot(rp_vector[idx, :] , weights[idx - 1, :])
 
 
         sharpe_ratio = self.sr_vals_multiple_asset(rp_vector, weights)
