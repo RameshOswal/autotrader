@@ -66,13 +66,9 @@ class get_metrics:
         """
         assert y_true.shape == weights.shape, "Dimension Mismatch!, True labels {} != Weights {}".format(y_true.shape, weights.shape)
 
-        y_mod = np.ndarray(shape = weights.shape)
-        y_mod[:,0] = 1
-        y_mod[:-1, 1:] = y_true
-        y_mod[-1, :] = 1
 
         # rp_vector => (time_steps - 1) X num_assets
-        rp_vector = np.array([np.divide(x , y) for (x, y) in zip(y_mod[1:, :], y_mod[:-1, :])])
+        rp_vector = np.array([np.divide(x , y) for (x, y) in zip(y_true[1:, :], y_true[:-1, :])])
 
         # final portfolio value => scalar. At any time t, fAPV = p_initial * _prod { rp_{t} * w_{t - 1}}
         portfolio_val = pv_0 * np.product([np.dot(r , w) for (r, w) in zip(rp_vector, weights[:-1, :])])
