@@ -1,14 +1,23 @@
-from data_load.batchifier import batchify
+from data_load.batchifier import Batchifier
 from models.lstm_model import LSTMModel, tf
+from literals import ASSET_LIST
+
+DATA_PATH = "../dataset/Poloneix_Preprocessednew"
+BSZ=16
+BPTT=50
+asset_list=ASSET_LIST
+randomize_train=False
+IDX=0
 
 if __name__ == '__main__':
     log_at = 50
-    batch_gen = batchify("../dataset/Poloneix_Preprocessednew")
+    batch_gen = Batchifier(data_path=DATA_PATH, bsz=BSZ, bptt=BPTT, idx=IDX,
+                           asset_list=ASSET_LIST, randomize_train=randomize_train)
     model = LSTMModel(num_hid=20,bptt=200)
     with tf.Session() as sess:
         sess.run(model.tf_init())
         for epoch in range(1,10):
-            train_batch_gen = batch_gen.load_train(bptt=200, normalize=False, bsz=128, idx = 0)
+            train_batch_gen = batch_gen.load_train()
             final, apv = [], []
             for bTrainX, bTrainY in train_batch_gen:
                 sess.run(model.optimize, feed_dict = {

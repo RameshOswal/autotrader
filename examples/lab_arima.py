@@ -8,6 +8,7 @@ NUM_IDXS = 4
 BPTT = 50
 INIT_PV=1000
 START_PT = 50
+CONST_MULT=1000
 
 
 if __name__=='__main__':
@@ -16,7 +17,7 @@ if __name__=='__main__':
         train_df, test_df = dp.load_train_test(idx=idx,
                                                    path="../dataset/Poloneix_Preprocessednew",
                                                    asset_name=ASSET_LIST,feature_type='close')
-        test_data = 1000*np.concatenate((train_df.values[-50:,:], test_df.values))
+        test_data = CONST_MULT*np.concatenate((train_df.values[-50:,:], test_df.values))
         test_date = "_".join(dp.test_dates[idx])
         model = ARIMAModel(1, 1, 0, -1, BPTT)
         ytrue, ypred = model.evaluate(test_data, START_PT)
