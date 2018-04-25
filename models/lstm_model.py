@@ -54,7 +54,7 @@ class LSTMModel:
         net = tf.reshape(net, [-1, shape[1], shape[2]*shape[3]])
         with tf.name_scope("LSTM_Cell"):
             # Stacked LSTM cell
-            net, _ = tf.nn.dynamic_rnn(self.lstm_cell(0.5, is_training),
+            net, _ = tf.nn.dynamic_rnn(self.lstm_cell(0.5, False),
                                        net, dtype=tf.float32)
         with tf.name_scope("Output_dense"):
             net = tf.reshape(net, [-1, self._num_hid])

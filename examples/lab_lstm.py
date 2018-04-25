@@ -7,30 +7,36 @@ import tensorflow.contrib.eager as tfe
 tfe.enable_eager_execution()
 
 DATA_PATH = "../dataset/Poloneix_Preprocessednew"
-BSZ=32
-BPTT=20
+BSZ=16
+BPTT=100
 asset_list=ASSET_LIST
 randomize_train=True
-overlapping_train=False
+overlapping_train=True
 IDX=0
 NUM_EPOCHS = 10
-VALIDATION_INTERVAL = 10
+VALIDATION_INTERVAL = 5
 INIT_PV=1000
-NUM_HID=20
+NUM_HID=200
+ASSETS = ASSET_LIST
 
 if __name__ == '__main__':
     batch_gen = Batchifier(data_path=DATA_PATH, bsz=BSZ, bptt=BPTT, idx=IDX,
-                           asset_list=ASSET_LIST, randomize_train=randomize_train,
+                           asset_list=ASSETS, randomize_train=randomize_train,
                            overlapping_train=overlapping_train)
-    model = LSTMModel(num_hid=NUM_HID,bptt=BPTT)
+    model = LSTMModel(num_hid=NUM_HID,bptt=BPTT, num_assets=len(ASSETS))
     step = 1
     losses = []
     for epoch in range(1,NUM_EPOCHS + 1):
         for bTrainX, bTrainY in batch_gen.load_train():
             model.optimize(bTrainX, bTrainY)
-            losses.append(model.loss(bTrainX, bTrainY).numpy()[0])
             step += 1
+            # print(step)
+            # if step == 10:
+            #     print("hell")
+            losses.append(model.loss(bTrainX, bTrainY).numpy())
             if step % VALIDATION_INTERVAL == 0:
+                print("Average Train Loss: {}, validating...".format(np.mean(losses)))
+                losses = []
                 allocation_wts = []
                 price_change_vec = []
                 for bEvalX, bEvalY in batch_gen.load_test():

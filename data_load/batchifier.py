@@ -25,14 +25,9 @@ class Batchifier:
         self.bsz = bsz
         self.bptt = bptt
         self.idx = idx
-        self.normalize=False
         self.asset_list = asset_list
         self.randomize_train = randomize_train
         self.overlapping_train = overlapping_train
-
-    def create_batches(self, X, X_c):
-        """Divide the prices by the closing price to get Price Relative Vector"""
-        return X.divide(X_c.values)
 
 
     def load_train(self):
@@ -64,42 +59,38 @@ class Batchifier:
         high, low, close = H[int(is_test)], L[int(is_test)], C[int(is_test)]
 
         # Batch IDs, Multiplying with bptt parameter to ensure non-overlapping batches
-        if not is_test and overlapping_batches:
+        if is_test or overlapping_batches:
             shuffle_ids = np.arange(start=0, stop=(len(high) - self.bptt))
             if randomize_batches:
                 np.random.shuffle(shuffle_ids)
-            num_batches = len(shuffle_ids) // self.bsz + 1
+
         else:
             shuffle_ids = np.arange(start=0, stop=(len(high) - self.bptt) // (self.bptt + 1))
             shuffle_ids *= self.bptt
             if not is_test and randomize_batches:
                 np.random.shuffle(shuffle_ids)
-            num_batches = len(shuffle_ids) // self.bsz + 1
+
+        num_batches = len(shuffle_ids) // self.bsz
+        num_batches = (num_batches if len(shuffle_ids) % self.bsz == 0 else num_batches + 1)
+
         for batch_idx in range(num_batches):
             s_ids = shuffle_ids[batch_idx * self.bsz: (batch_idx + 1) * self.bsz]
 
-            # X.shape => (bptt X num_features X num_assets), y.shape => (bptt X num_assets)
+            # X.shape => (bptt X num_features X num_assets), y.shape => (bptt X num_assets + 1)
             X = []
             y = []
 
             for s_idx in s_ids:
-                if self.normalize:
-                    h_batch = self.create_batches(high.iloc[s_idx: s_idx + self.bptt, :],
-                                                  close.iloc[s_idx + self.bptt - 1, :])
-                    l_batch = self.create_batches(low.iloc[s_idx: s_idx + self.bptt, :],
-                                                  close.iloc[s_idx + self.bptt - 1, :])
-                    c_batch = self.create_batches(close.iloc[s_idx: s_idx + self.bptt, :],
-                                                  close.iloc[s_idx + self.bptt - 1, :])
-                else:
-                    h_batch = high.iloc[s_idx: s_idx + self.bptt, :]
-                    l_batch = low.iloc[s_idx: s_idx + self.bptt, :]
-                    c_batch = close.iloc[s_idx: s_idx + self.bptt, :]
+                h_batch = high.iloc[s_idx: s_idx + self.bptt, :]
+                l_batch = low.iloc[s_idx: s_idx + self.bptt, :]
+                c_batch = close.iloc[s_idx: s_idx + self.bptt, :]
 
                 # Convert all three to matrix form, out.shape => (num_features X bptt X num_assets)
                 x_out = np.array([h_batch.as_matrix(), l_batch.as_matrix(), c_batch.as_matrix()])
 
                 #(saatvik): Why will this happen??
-                if len(h_batch) != self.bptt: continue
+                if len(h_batch) != self.bptt:
+                    continue
 
                 # Relative price change(num_assets + 1(indicating change in cash==constant))
                 # Note that last column indicates cash
@@ -111,7 +102,8 @@ class Batchifier:
             # X[0], y[0] is a zero pad meant for vstack convenience
             X = np.array(X)
             y = np.array(y)
-            assert X.shape[1] == self.bptt and X.shape[2] == 3 and X.shape[3] == len(self.asset_list)
+            assert len(X.shape) == 4, "X shape: {}".format(X.shape)
+            assert X.shape[1] == self.bptt and X.shape[2] == 3 and X.shape[3] == len(self.asset_list), "X shape: {}".format(X.shape)
             assert y.shape[1] == self.bptt and y.shape[2] == len(self.asset_list) + 1
             assert len(X) == len(y)
             if is_test:
