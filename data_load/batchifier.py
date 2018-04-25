@@ -49,7 +49,7 @@ class Batchifier:
         """
         :return:
         X: features[timestamp-bptt:timestamp],(bsz, bptt, num_feats, num_assets)
-        y: price_of_assets[timestamp]/price_of_assets[timestamp-1]
+        y: price_of_assets[timestamp]/price_of_assets[timestamp-1] [bsz, num_assets]
         Note that X will start from the bptt'th timestep and have overlapping samples in the batch
         i.e. X[t] => X[0:t], X[t+1] = X[1:t+1] onwards.
         """
@@ -79,12 +79,8 @@ class Batchifier:
             s_ids = shuffle_ids[batch_idx * self.bsz: (batch_idx + 1) * self.bsz]
 
             # X.shape => (bptt X num_features X num_assets), y.shape => (bptt X num_assets)
-            X = np.zeros(shape = (self.bptt, 3, len(self.asset_list)))
-            y = np.zeros(shape = (self.bptt, len(self.asset_list)))
-
-            # X.shape => (bsz X bptt X num_assets), y.shape => (bsz X bptt X num_assets)
-            X = X[np.newaxis, :]
-            y = y[np.newaxis, :]
+            X = []
+            y = []
 
             for s_idx in s_ids:
                 if self.normalize:
@@ -110,14 +106,18 @@ class Batchifier:
                 y_out = close.iloc[s_idx + 1: s_idx + self.bptt + 1, :].as_matrix() / c_batch
                 y_out = np.pad(y_out , [(0, 0), (0,1)], constant_values=1, mode="constant")
                 x_out = x_out.transpose([1, 0, 2])
-                X = np.vstack((X, x_out[np.newaxis, :]))
-                y = np.vstack((y, y_out[np.newaxis, :]))
+                X.append(x_out)
+                y.append(y_out)
             # X[0], y[0] is a zero pad meant for vstack convenience
+            X = np.array(X)
+            y = np.array(y)
+            assert X.shape[1] == self.bptt and X.shape[2] == 3 and X.shape[3] == len(self.asset_list)
+            assert y.shape[1] == self.bptt and y.shape[2] == len(self.asset_list) + 1
             assert len(X) == len(y)
             if is_test:
-                yield X[1:, :, :, :], y[-1, :, :]
+                yield X, y[:, -1, :]
             else:
-                yield X[1:, :, :, :], y[1:, :, :]
+                yield X, y
 
 
     def loader(self, name, asset_list = ASSET_LIST, idx = 0):
