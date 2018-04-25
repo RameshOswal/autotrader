@@ -37,31 +37,45 @@ class Batchifier:
 
     def load_train(self):
         """
-        For
-
+        :return:
+        X: (bsz, bptt, num_feats, num_assets) - Features
+        y: (bsz, bptt, num_assets) - Relative change price
         """
+        return self.load_batch(randomize_batches=self.randomize_train,
+                              overlapping_batches=self.overlapping_train, is_test=False)
+
+
+    def load_test(self):
+        """
+        :return:
+        X: features[timestamp-bptt:timestamp],(bsz, bptt, num_feats, num_assets)
+        y: price_of_assets[timestamp]/price_of_assets[timestamp-1]
+        Note that X will start from the bptt'th timestep and have overlapping samples in the batch
+        i.e. X[t] => X[0:t], X[t+1] = X[1:t+1] onwards.
+        """
+        return self.load_batch(randomize_batches=False, overlapping_batches=True, is_test=True)
+
+    def load_batch(self, randomize_batches, overlapping_batches, is_test):
         vals = zip(self.loader("high", asset_list=self.asset_list, idx=self.idx),
                    self.loader("low", asset_list=self.asset_list, idx=self.idx),
                    self.loader("close", asset_list=self.asset_list, idx=self.idx))
         H, L, C = zip(*vals)
 
-        high, low, close = H[0], L[0], C[0]
+        high, low, close = H[int(is_test)], L[int(is_test)], C[int(is_test)]
 
         # Batch IDs, Multiplying with bptt parameter to ensure non-overlapping batches
-        if self.overlapping_train:
+        if not is_test and overlapping_batches:
             shuffle_ids = np.arange(start=0, stop=(len(high) - self.bptt))
-            if self.randomize_train:
+            if randomize_batches:
                 np.random.shuffle(shuffle_ids)
             num_batches = len(shuffle_ids) // self.bsz + 1
         else:
             shuffle_ids = np.arange(start=0, stop=(len(high) - self.bptt) // (self.bptt + 1))
             shuffle_ids *= self.bptt
-            if self.randomize_train:
+            if not is_test and randomize_batches:
                 np.random.shuffle(shuffle_ids)
             num_batches = len(shuffle_ids) // self.bsz + 1
         for batch_idx in range(num_batches):
-            # s_ids are the Batch IDs for this batch, of the form(if not shuffled)
-            # [[0, bptt), [1, bptt + 1), [2, bptt+2) onward]
             s_ids = shuffle_ids[batch_idx * self.bsz: (batch_idx + 1) * self.bsz]
 
             # X.shape => (bptt X num_features X num_assets), y.shape => (bptt X num_assets)
@@ -70,6 +84,7 @@ class Batchifier:
 
             # X.shape => (bsz X bptt X num_assets), y.shape => (bsz X bptt X num_assets)
             X = X[np.newaxis, :]
+            y = y[np.newaxis, :]
 
             for s_idx in s_ids:
                 if self.normalize:
@@ -85,62 +100,24 @@ class Batchifier:
                     c_batch = close.iloc[s_idx: s_idx + self.bptt, :]
 
                 # Convert all three to matrix form, out.shape => (num_features X bptt X num_assets)
-                out = np.array([h_batch.as_matrix(), l_batch.as_matrix(), c_batch.as_matrix()])
+                x_out = np.array([h_batch.as_matrix(), l_batch.as_matrix(), c_batch.as_matrix()])
 
                 #(saatvik): Why will this happen??
                 if len(h_batch) != self.bptt: continue
 
                 # Relative price change(num_assets + 1(indicating change in cash==constant))
-                y = close.iloc[s_idx + 1: s_idx + self.bptt + 1, :].as_matrix() / c_batch
-                y = np.pad(y , [(0, 0), (0,1)], constant_values=1, mode="constant")
-                y = y[np.newaxis, :]
-                # print(y)
-                X = np.vstack((X, np.reshape(out.transpose([1, 0, 2]), [1, len(h_batch), 3, len(self.asset_list)])))
-                y = np.vstack((y, np.reshape(y, [1, len(h_batch), len(self.asset_list) + 1])))
+                # Note that last column indicates cash
+                y_out = close.iloc[s_idx + 1: s_idx + self.bptt + 1, :].as_matrix() / c_batch
+                y_out = np.pad(y_out , [(0, 0), (0,1)], constant_values=1, mode="constant")
+                x_out = x_out.transpose([1, 0, 2])
+                X = np.vstack((X, x_out[np.newaxis, :]))
+                y = np.vstack((y, y_out[np.newaxis, :]))
             # X[0], y[0] is a zero pad meant for vstack convenience
-            yield X[1:, :, :, :], y[1:, :, :]
-
-
-    def load_test(self):
-        vals = zip(self.loader("high", asset_list = self.asset_list, idx=self.idx),
-                   self.loader("low", asset_list = self.asset_list, idx=self.idx),
-                   self.loader("close", asset_list = self.asset_list, idx=self.idx))
-        H, L, C = zip(*vals)
-
-        high, low, close = H[1], L[1], C[1]
-
-        shuffle_ids = np.arange(start=0, stop=len(high) - self.bptt)
-        num_batches = len(shuffle_ids) // self.bsz + 1
-
-        for idx in range(num_batches):
-            # s_ids are the Batch IDs for this batch, of the form
-            # [[0, bptt), [1, bptt + 1), [2, bptt+2) onward]
-            s_ids = shuffle_ids[idx * self.bsz: (idx + 1) * self.bsz]
-
-            # X.shape => (bptt X num_features X num_assets)
-            X = np.zeros(shape=(self.bptt, 3, len(self.asset_list)))
-
-            # X.shape => (bsz X bptt X num_assets)
-            X = X[np.newaxis, :]
-
-            for s_idx in s_ids:
-                if self.normalize:
-                    h_batch = self.create_batches(high.iloc[s_idx: s_idx + self.bptt, :], close.iloc[s_idx + self.bptt - 1, :])
-                    l_batch = self.create_batches(low.iloc[s_idx: s_idx + self.bptt, :], close.iloc[s_idx + self.bptt - 1, :])
-                    c_batch = self.create_batches(close.iloc[s_idx: s_idx + self.bptt, :], close.iloc[s_idx + self.bptt - 1, :])
-                else:
-                    h_batch = high.iloc[s_idx: s_idx + self.bptt, :]
-                    l_batch = low.iloc[s_idx: s_idx + self.bptt, :]
-                    c_batch = close.iloc[s_idx: s_idx + self.bptt, :]
-
-                # Convert all three to matrix form, out.shape => (num_features X bptt X num_assets)
-                out = np.array([h_batch.as_matrix(), l_batch.as_matrix(), c_batch.as_matrix()])
-
-                if len(h_batch) != self.bptt: continue
-
-                X = np.vstack((X, np.reshape(out.transpose([1, 0, 2]), [1, len(h_batch), 3, len(self.asset_list)])))
-
-            yield X[1:, :, :, :]
+            assert len(X) == len(y)
+            if is_test:
+                yield X[1:, :, :, :], y[-1, :, :]
+            else:
+                yield X[1:, :, :, :], y[1:, :, :]
 
 
     def loader(self, name, asset_list = ASSET_LIST, idx = 0):
