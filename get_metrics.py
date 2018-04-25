@@ -79,7 +79,7 @@ class get_metrics:
         del_portfolio[0] = pv_0
 
         for idx in range(1, time_steps):
-            del_portfolio[idx] = del_portfolio[idx - 1] * np.dot(rp_vector[idx, :] , weights[idx, :])
+            del_portfolio[idx] = del_portfolio[idx - 1] * np.dot(rp_vector[idx - 1, :] , weights[idx - 1, :])
 
 
         sharpe_ratio = self.sr_vals_multiple_asset(rp_vector, weights)

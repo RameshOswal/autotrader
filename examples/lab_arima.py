@@ -10,7 +10,6 @@ INIT_PV=1000
 START_PT = 50
 CONST_MULT=1000
 
-
 if __name__=='__main__':
     dp = DataPreprocess(input_folder_name="../dataset/Poloneix_Preprocessednew")
     for idx in range(NUM_IDXS):
@@ -24,5 +23,7 @@ if __name__=='__main__':
         weights = model.compute_allocation_weights(ypred, ytrue)
         assert (len(ytrue) == len(ypred))
         true_change = ytrue[1:]/ytrue[:-1]
+        true_change_cash = np.ones((len(true_change), true_change.shape[1] + 1))
+        true_change_cash[:,1:] = true_change
         m = get_metrics(dt_range = test_date)
-        m.apv_multiple_asset(true_change, weights, get_graph=True, pv_0=INIT_PV)
+        m.apv_multiple_asset(true_change_cash, weights, get_graph=True, pv_0=INIT_PV)
