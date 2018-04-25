@@ -1,7 +1,4 @@
 import tensorflow as tf
-import functools
-import os
-import numpy as np
 
 """
 References for LSTM Model:
@@ -14,17 +11,6 @@ Input -> Transpose([Bsz, History, feats, NUM_ASSETS]) -> Feed each asset to diff
 -> Get output as list: len #assets [bsz, 1, 20] -> Concatenate/Stack output -> Reshape -> ??
 """
 
-# def lazy_property(function):
-#     attribute = '_cache_' + function.__name__
-#
-#     @property
-#     @functools.wraps(function)
-#     def decorator(self):
-#         if not hasattr(self, attribute):
-#             setattr(self, attribute, function(self))
-#         return getattr(self, attribute)
-#     return decorator
-
 
 class LSTMModel:
 
@@ -34,33 +20,52 @@ class LSTMModel:
             clip_norm=0.25,
             num_features=3,
             num_assets=9,
-            bptt=5):
+            bptt=5,
+            lr=0.001):
         self._num_hid = num_hid
         self._clip_norm = clip_norm
         self._num_features = num_features
         self._num_assets = num_assets
         self._bptt = bptt
         self._is_training = False
-        self.optimizer = tf.train.AdamOptimizer()
-
-    def lstm_cell(self, dropout, is_training):
-        return tf.nn.rnn_cell.DropoutWrapper(
-            tf.nn.rnn_cell.LSTMCell(self._num_hid),
-            output_keep_prob=(dropout if is_training else 1.0))
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=lr)
 
     def logits(self, data, is_training=False):
         net = tf.constant(data, dtype=tf.float32)
         shape = net.get_shape().as_list()
         net = tf.reshape(net, [-1, shape[1], shape[2]*shape[3]])
-        with tf.name_scope("LSTM_Cell"):
+        with tf.variable_scope("LSTM_Cell", reuse=tf.AUTO_REUSE):
             # Stacked LSTM cell
-            net, _ = tf.nn.dynamic_rnn(self.lstm_cell(0.5, False),
-                                       net, dtype=tf.float32)
+            cell = tf.nn.rnn_cell.LSTMCell(self._num_hid)
+            net, _ = tf.nn.dynamic_rnn(cell, net, dtype=tf.float32)
         with tf.name_scope("Output_dense"):
             net = tf.reshape(net, [-1, self._num_hid])
             net = tf.layers.dense(net, self._num_assets + 1)
             net = tf.reshape(net, [-1, self._bptt, self._num_assets + 1])
         return net
+
+    # EIIE Logic
+    # def logits(self, data, is_training=False):
+    #     net = tf.constant(data, dtype=tf.float32)
+    #     with tf.variable_scope("LSTM_Cell", reuse=tf.AUTO_REUSE):
+    #         # (bsz, bptt, num_feats, num_assets)
+    #         shape = net.get_shape().as_list()
+    #         bsz = shape[0]
+    #         bptt = shape[1]
+    #         lstm_outs = []
+    #         for i in range(self._num_assets):
+    #             # Stacked LSTM cell
+    #             net_asset = net[:,:,:,i]
+    #             cell = tf.nn.rnn_cell.LSTMCell(self._num_hid)
+    #             net_asset, _ = tf.nn.dynamic_rnn(cell, net_asset, dtype=tf.float32)
+    #             lstm_outs.append(net_asset)
+    #         net = tf.reshape(tf.stack(lstm_outs, axis=3), [bsz, bptt, -1])
+    #     with tf.name_scope("Output_dense"):
+    #         feat_len = tf.shape(net)[2]
+    #         net = tf.reshape(net, [-1, feat_len])
+    #         net = tf.layers.dense(net, self._num_assets + 1)
+    #         net = tf.reshape(net, [-1, self._bptt, self._num_assets + 1])
+    #     return net
 
     def predict_portfolio_allocation(self, data):
         last_logit = self.logits(data)[:, -1, :]

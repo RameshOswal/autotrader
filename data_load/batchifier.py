@@ -58,13 +58,15 @@ class Batchifier:
 
         high, low, close = H[int(is_test)], L[int(is_test)], C[int(is_test)]
 
-        # Batch IDs, Multiplying with bptt parameter to ensure non-overlapping batches
+
         if is_test or overlapping_batches:
+            # Overlapping batches
             shuffle_ids = np.arange(start=0, stop=(len(high) - self.bptt))
-            if randomize_batches:
+            if not is_test and randomize_batches:
                 np.random.shuffle(shuffle_ids)
 
         else:
+            # Non-Overlapping batches
             shuffle_ids = np.arange(start=0, stop=(len(high) - self.bptt) // (self.bptt + 1))
             shuffle_ids *= self.bptt
             if not is_test and randomize_batches:
