@@ -58,23 +58,18 @@ class get_metrics:
             else: drawdown_lst.append( (max_val - pv_vals[idx]) / max_val)
         return max(drawdown_lst)
 
-    def apv_multiple_asset(self, y_true, weights, pv_0 = 1, get_graph = False):
+    def apv_multiple_asset(self, rp_vector, weights, pv_0 = 1, get_graph = False):
         """
-        :param y_true: time_steps X num_assets
+        :param rp_vector: time_steps X num_assets
         :param weights: time_steps X num_assets
         :return: MDD, final portfolio value, SR
         """
-        assert y_true.shape == weights.shape, "Dimension Mismatch!, True labels {} != Weights {}".format(y_true.shape, weights.shape)
+        assert rp_vector.shape == weights.shape, "Dimension Mismatch!, True labels {} != Weights {}".format(rp_vector.shape, weights.shape)
 
-
-        # rp_vector => (time_steps - 1) X num_assets
-        rp_vector = np.array([np.divide(x , y) for (x, y) in zip(y_true[1:, :], y_true[:-1, :])])
 
         # final portfolio value => scalar. At any time t, fAPV = p_initial * _prod { rp_{t} * w_{t - 1}}
-        portfolio_val = pv_0 * np.product([np.dot(r , w) for (r, w) in zip(rp_vector, weights[:-1, :])])
+        portfolio_val = pv_0 * np.product([np.dot(r , w) for (r, w) in zip(rp_vector, weights)])
 
-
-        # Finding change in portfolio values
 
         # time_steps = total_time_steps
         time_steps = rp_vector.shape[0] + 1
@@ -84,7 +79,7 @@ class get_metrics:
         del_portfolio[0] = pv_0
 
         for idx in range(1, time_steps):
-            del_portfolio[idx] = del_portfolio[idx - 1] * np.dot(rp_vector[idx, :] , weights[idx - 1, :])
+            del_portfolio[idx] = del_portfolio[idx - 1] * np.dot(rp_vector[idx, :] , weights[idx, :])
 
 
         sharpe_ratio = self.sr_vals_multiple_asset(rp_vector, weights)
