@@ -28,7 +28,9 @@ class LSTMModel:
         self._num_assets = num_assets
         self._bptt = bptt
         self._is_training = False
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=lr)
+        self._optimizer = tf.train.AdamOptimizer(learning_rate=lr)
+        self._asset_wt_projection = tf.layers.Dense(self._num_assets + 1, activation=tf.nn.softmax)
+        self._cell = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
 
     def logits(self, data, is_training=False):
         net = tf.constant(data, dtype=tf.float32)
@@ -36,11 +38,11 @@ class LSTMModel:
         net = tf.reshape(net, [-1, shape[1], shape[2]*shape[3]])
         with tf.variable_scope("LSTM_Cell", reuse=tf.AUTO_REUSE):
             # Stacked LSTM cell
-            cell = tf.nn.rnn_cell.LSTMCell(self._num_hid)
+            cell = self._cell
             net, _ = tf.nn.dynamic_rnn(cell, net, dtype=tf.float32)
         with tf.name_scope("Output_dense"):
             net = tf.reshape(net, [-1, self._num_hid])
-            net = tf.layers.dense(net, self._num_assets + 1)
+            net = self._asset_wt_projection(net)
             net = tf.reshape(net, [-1, self._bptt, self._num_assets + 1])
         return net
 
@@ -82,11 +84,9 @@ class LSTMModel:
 
     def optimize(self, data, target):
         with tf.name_scope("backprop_fn"):
-            # params = tf.trainable_variables()
-            # gradients = tf.gradients(self.loss(data, target), params)
-            # clipped_gradients, _ = tf.clip_by_global_norm(
-            #     gradients, clip_norm=self._clip_norm)
-            self.optimizer.minimize(lambda :self.loss(data, target, True))
+            gvs = self._optimizer.compute_gradients(lambda :self.loss(data, target, True))
+            capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs]
+            self._optimizer.apply_gradients(capped_gvs)
 
     def __repr__(self):
         return "Seq2SeqLSTM"

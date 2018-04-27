@@ -9,17 +9,17 @@ tfe.enable_eager_execution()
 
 
 DATA_PATH = "../dataset/Poloneix_Preprocessednew"
-BSZ=128
+BSZ=32
 BPTT=50
 asset_list=ASSET_LIST
 randomize_train=True
-overlapping_train=False
-IDX=1
+overlapping_train=True
+IDX=0
 NUM_EPOCHS = 10
 INIT_PV=1000
 NUM_HID=20
 ASSETS = ASSET_LIST
-LR = 0.001
+LR = 0.01
 
 if __name__ == '__main__':
     batch_gen = Batchifier(data_path=DATA_PATH, bsz=BSZ, bptt=BPTT, idx=IDX,
@@ -42,6 +42,8 @@ if __name__ == '__main__':
             allocation_wts.append(pred_allocations)
         true_change_vec = np.concatenate(price_change_vec)
         allocation_wts = np.concatenate(allocation_wts)
+        # print("Overall change in price:", list(np.prod(true_change_vec, axis=0)))
+        # print("Mean Asset Allocation:", list(np.mean(allocation_wts, axis=0)))
         random_alloc_wts = softmax(np.random.random(allocation_wts.shape))
         test_date = "_".join(batch_gen.dp.test_dates[IDX])
         m = get_metrics(dt_range=test_date)
