@@ -4,9 +4,13 @@ from glob import glob
 import pandas as pd
 import os
 class DataPreprocess:
-    def __init__(self, input_folder_name, output_folder_name, processed_file_name = 'preprocessed_Stock_data.csv'):
+    def __init__(self, input_folder_name='../../dataset/stock_data',
+                 output_folder_name='../../dataset/stock_data_Preprocessed',
+                 processed_file_name = 'preprocessed_Stock_data.csv'):
         self.input_folder_name = input_folder_name
         self.output_folder_name = output_folder_name
+        self.train_dates = ['stock_date1']
+        self.test_dates = ['stock_date1']
         self.processed_file_name  = processed_file_name
         self.dataset = pd.DataFrame()
 
@@ -45,6 +49,15 @@ class DataPreprocess:
         self.dataset = pd.read_csv(path)
 
     def load_train_test(self, feature_type='OPEN', asset_name="FB", path="", train_test_ratio=0.8):
+        """
+
+        :param feature_type: Name of Feature like open, close etc.
+        :param asset_name: names of stock asset we want
+        :param path: path of the preprocessed file
+        :param train_test_ratio:
+        :param idx:
+        :return:
+        """
         if path.strip() == "":
             path = os.path.join(self.output_folder_name, self.processed_file_name)
 
@@ -62,8 +75,8 @@ class DataPreprocess:
 
 if __name__=='__main__':
 
-    input_folder_name = 'dataset/stock_data'
-    output_folder_name = 'dataset/stock_data_Preprocessed'
+    input_folder_name = '../../dataset/stock_data'
+    output_folder_name = '../../dataset/stock_data_Preprocessed'
 
     data = DataPreprocess(input_folder_name=input_folder_name,
                           output_folder_name=output_folder_name,

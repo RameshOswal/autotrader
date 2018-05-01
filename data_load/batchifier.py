@@ -1,11 +1,14 @@
 __author__ = "deeptrader"
 
 import numpy as np
-from data_load.load_crypto import DataPreprocess
+# from data_load.load_crypto import DataPreprocess
+import data_load.load_crypto  as crypto
+import data_load.load_stocks as stocks
 from literals import ASSET_LIST
 
 class Batchifier:
-    def __init__(self, data_path=".", bsz=16, bptt=50, idx=0, asset_list=ASSET_LIST, randomize_train=True, overlapping_train=False):
+    def __init__(self, data_path=".", bsz=16, bptt=50, idx=0, asset_list=ASSET_LIST,
+                 randomize_train=True, overlapping_train=False, data_preprocess=crypto.DataPreprocess()):
         """
         :param data_path: Path to 'Poloneix_Preprocessed'
         :param bsz: Batch size
@@ -18,7 +21,8 @@ class Batchifier:
         will look at history to determine portfolio allocation for next timestep
         TODO(saatvik): I dont think 'normalize' is needed - Data seems to always be normalized
         """
-        self.dp = DataPreprocess()
+        # self.dp = DataPreprocess()
+        self.dp = data_preprocess
         self.train_dates = self.dp.train_dates
         self.test_dates = self.dp.test_dates
         self.data_path = data_path
@@ -120,5 +124,31 @@ class Batchifier:
         :param asset_list: Number of assets to keep
         :return: (Generator iterates for all the date ranges) Dataframe where each column is an asset. Number of records is for the entire date range.
         """
-        return self.dp.load_train_test(asset_name = asset_list, feature_type = name, idx=idx, path=self.data_path)
+        if type(self.dp) == type(crypto.DataPreprocess()):
+            return self.dp.load_train_test(asset_name = asset_list, feature_type = name, idx=idx, path=self.data_path)
+        else: # is stock loader
+            # asset_list = set(list(map(str.upper,asset_list)))
+            # print(asset_list)
+            name = str.upper(name)
+            return self.dp.load_train_test(asset_name = asset_list, feature_type = name,
+                                           path=self.data_path, train_test_ratio=0.8)
 
+
+def test_load_stocks():
+    """
+    Function used to test the load_Stocks
+    :return:
+    """
+    dp = stocks.DataPreprocess()
+    dp.load_preprocessed('../../dataset/stock_data_Preprocessed/preprocessed_Stock_data.csv')
+    stocks_name = dp.asset_names()
+    batch_obj = Batchifier(data_path='../../dataset/stock_data_Preprocessed/preprocessed_Stock_data.csv',
+                           asset_list=stocks_name, data_preprocess=dp,
+                           idx=0,
+                           )
+    for x, y in batch_obj.load_batch(overlapping_batches=False, randomize_batches=False, is_test=False):
+        print(x.shape, y.shape)
+
+
+if __name__ == "__main__":
+    test_load_stocks()
