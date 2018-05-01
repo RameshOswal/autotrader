@@ -12,14 +12,14 @@ DATA_PATH = "../dataset/Poloneix_Preprocessednew"
 BSZ=32
 BPTT=50
 asset_list=ASSET_LIST
-randomize_train=True
+randomize_train=False
 overlapping_train=True
 IDX=0
 NUM_EPOCHS = 10
 INIT_PV=1000
 NUM_HID=20
 ASSETS = ASSET_LIST
-LR = 0.01
+LR = 1
 
 if __name__ == '__main__':
     batch_gen = Batchifier(data_path=DATA_PATH, bsz=BSZ, bptt=BPTT, idx=IDX,
@@ -49,5 +49,5 @@ if __name__ == '__main__':
         m = get_metrics(dt_range=test_date)
         print("Our Policy:")
         m.apv_multiple_asset(true_change_vec, allocation_wts, get_graph=True, pv_0=INIT_PV)
-        print("Random Policy:")
-        m.apv_multiple_asset(true_change_vec, random_alloc_wts, get_graph=True, pv_0=INIT_PV)
+        # print("Random Policy:")
+        # m.apv_multiple_asset(true_change_vec, random_alloc_wts, get_graph=True, pv_0=INIT_PV)

@@ -30,20 +30,36 @@ class LSTMModel:
         self._is_training = False
         self._optimizer = tf.train.AdamOptimizer(learning_rate=lr)
         self._asset_wt_projection = tf.layers.Dense(self._num_assets + 1, activation=tf.nn.softmax)
-        self._cell = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
+
+        self._cell1 = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
+        self._cell2 = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
+
+        self.dense = tf.layers.Dense(self._num_assets + 1, activation=tf.nn.softmax)
+
 
     def logits(self, data, is_training=False):
         net = tf.constant(data, dtype=tf.float32)
         shape = net.get_shape().as_list()
-        net = tf.reshape(net, [-1, shape[1], shape[2]*shape[3]])
+        net = tf.reshape(net, [-1, shape[1], shape[2] * shape[3]])  # net => bsz X history X (num_asset * num_feats)
+
         with tf.variable_scope("LSTM_Cell", reuse=tf.AUTO_REUSE):
             # Stacked LSTM cell
-            cell = self._cell
-            net, _ = tf.nn.dynamic_rnn(cell, net, dtype=tf.float32)
-        with tf.name_scope("Output_dense"):
-            net = tf.reshape(net, [-1, self._num_hid])
-            net = self._asset_wt_projection(net)
-            net = tf.reshape(net, [-1, self._bptt, self._num_assets + 1])
+            cell1 = self._cell1
+            cell2 = self._cell2
+
+            net, _ = tf.nn.bidirectional_dynamic_rnn(cell1, cell2, net, dtype=tf.float32)
+            net = tf.concat(net, axis=2)
+
+        # net => bsz X history X 2 * num_hid
+        with tf.variable_scope("Output_dense", reuse=tf.AUTO_REUSE):
+            net = tf.reshape(net, [-1, 2 * self._num_hid * self._bptt])
+            # net = tf.layers.dense(net, self._num_assets + 1)
+
+            net = self.dense(net)
+
+            net = tf.reshape(net, [-1, self._num_assets + 1])
+
+        # net => bsz X num_assets (includes cash)
         return net
 
     # EIIE Logic
@@ -70,17 +86,22 @@ class LSTMModel:
     #     return net
 
     def predict_portfolio_allocation(self, data):
-        last_logit = self.logits(data)[:, -1, :]
-        return tf.nn.softmax(last_logit).numpy()
-
+        last_logit = self.logits(data)
+        return tf.nn.softmax(last_logit, axis=1).numpy()
 
     def loss(self, data, target, is_training=False):
-        prediction = tf.nn.softmax(self.logits(data, is_training),dim=2)
+        # logits => bsz X num_assets
+        prediction = tf.nn.softmax(self.logits(data, is_training), axis=1)
+
         portfolio_ts = tf.multiply(prediction, target)
-        portfolio_comb = tf.reduce_sum(portfolio_ts, axis=2)
-        apv_batch = tf.reduce_prod(portfolio_comb,axis=1)
-        apv_mean = tf.reduce_mean(apv_batch)
-        return -apv_mean
+
+        # summing over all the assets
+        portfolio_comb = tf.reduce_sum(portfolio_ts, axis=1)
+
+        # Taking a product of all the batches. Batches are for consecutive time steps
+        apv_batch = tf.reduce_prod(portfolio_comb, axis=0)
+
+        return -apv_batch
 
     def optimize(self, data, target):
         with tf.name_scope("backprop_fn"):

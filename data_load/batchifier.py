@@ -96,8 +96,9 @@ class Batchifier:
 
                 # Relative price change(num_assets + 1(indicating change in cash==constant))
                 # Note that last column indicates cash
-                y_out = close.iloc[s_idx + 1: s_idx + self.bptt + 1, :].as_matrix() / c_batch
-                y_out = np.pad(y_out , [(0, 0), (0,1)], constant_values=1, mode="constant")
+                y_out = close.iloc[s_idx + self.bptt, :].as_matrix() / close.iloc[s_idx + self.bptt - 1, :]
+
+                y_out = np.pad(y_out , [(0,1)], constant_values=1, mode="constant")
                 x_out = x_out.transpose([1, 0, 2])
                 X.append(x_out)
                 y.append(y_out)
@@ -106,12 +107,14 @@ class Batchifier:
             y = np.array(y)
             assert len(X.shape) == 4, "X shape: {}".format(X.shape)
             assert X.shape[1] == self.bptt and X.shape[2] == 3 and X.shape[3] == len(self.asset_list), "X shape: {}".format(X.shape)
-            assert y.shape[1] == self.bptt and y.shape[2] == len(self.asset_list) + 1
+            assert y.shape[1] == len(self.asset_list) + 1
             assert len(X) == len(y)
-            if is_test:
-                yield X, y[:, -1, :]
-            else:
-                yield X, y
+            # if is_test:
+            #     yield X, y[:, -1, :]
+            # else:
+
+            # y => bsz X num_assets
+            yield X, y
 
 
     def loader(self, name, asset_list = ASSET_LIST, idx = 0):
