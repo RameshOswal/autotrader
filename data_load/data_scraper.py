@@ -122,11 +122,12 @@ def check_function(ticker = "MSFT"):
         page = requests.get(uri)
         # reader = list(map(lambda x: str(x, 'utf-8'), page.content.splitlines()))
         # exit()
-        reader = csv.reader(page.content.splitlines())
+        reader = csv.reader(map(lambda x : x.decode('utf-8'), page.content.splitlines()))
         # reader = reader.decode('utf-8')
         columns = ['Open', 'High', 'Low', 'Close', 'Volume']
         rows = []
         times = []
+        print(reader)
         for row in reader:
             # print(row)
             # exit()
@@ -149,6 +150,6 @@ def check_function(ticker = "MSFT"):
     print(df.head(), len(df))
 
 if __name__ == '__main__':
-    # stock_lst = ["MSFT", "AMZN", "FB", "AAPL", "GOOGL"]
-    # for tick in stock_lst: check_function(ticker=tick)
-    main()
+    stock_lst = ["MSFT", "AMZN", "FB", "AAPL", "GOOGL"]
+    for tick in stock_lst: check_function(ticker=tick)
+    # main()
