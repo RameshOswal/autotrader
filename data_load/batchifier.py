@@ -124,7 +124,7 @@ class Batchifier:
         :param asset_list: Number of assets to keep
         :return: (Generator iterates for all the date ranges) Dataframe where each column is an asset. Number of records is for the entire date range.
         """
-        if type(self.dp) == type(crypto.DataPreprocess()):
+        if isinstance(self.dp , crypto.DataPreprocess):
             return self.dp.load_train_test(asset_name = asset_list, feature_type = name, idx=idx, path=self.data_path)
         else: # is stock loader
             # asset_list = set(list(map(str.upper,asset_list)))
