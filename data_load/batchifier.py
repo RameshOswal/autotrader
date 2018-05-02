@@ -140,13 +140,15 @@ def test_load_stocks():
     :return:
     """
     dp = stocks.DataPreprocess()
-    dp.load_preprocessed('../../dataset/stock_data_Preprocessed/preprocessed_Stock_data.csv')
+    # dp.load_preprocessed('../../dataset/stock_data_Preprocessed/preprocessed_Stock_data.csv')
+    dp.load_preprocessed('../../dataset/5yrs_preprocessed/all_5_yrs_processed.csv')
     stocks_name = dp.asset_names()
-    batch_obj = Batchifier(data_path='../../dataset/stock_data_Preprocessed/preprocessed_Stock_data.csv',
+    print(stocks_name)
+    batch_obj = Batchifier(data_path='../../dataset/5yrs_preprocessed/all_5_yrs_processed.csv',
                            asset_list=stocks_name, data_preprocess=dp,
                            idx=0,
                            )
-    for x, y in batch_obj.load_batch(overlapping_batches=False, randomize_batches=False, is_test=False):
+    for x, y in batch_obj.load_batch(overlapping_batches=True, randomize_batches=False, is_test=False):
         print(x.shape, y.shape)
 
 

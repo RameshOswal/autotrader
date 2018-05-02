@@ -81,9 +81,9 @@ if __name__=='__main__':
     data = DataPreprocess(input_folder_name=input_folder_name,
                           output_folder_name=output_folder_name,
                           )
-    # data.preprocess()
-    data.asset_names()
-    tr, te = data.load_train_test()
-    print(tr.head(2), te.head(2))
-    tr, te = data.load_train_test(asset_name=['FB','AAPL'] ,feature_type='OPEN', train_test_ratio=0.5, path='preprocessed_Stock_data.csv')
-    print(tr.head(2), te.head(2))
+    data.preprocess()
+    # data.asset_names()
+    # tr, te = data.load_train_test()
+    # print(tr.head(2), te.head(2))
+    # tr, te = data.load_train_test(asset_name=['FB','AAPL'] ,feature_type='OPEN', train_test_ratio=0.5, path='preprocessed_Stock_data.csv')
+    # print(tr.head(2), te.head(2))
