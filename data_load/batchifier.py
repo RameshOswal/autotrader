@@ -130,8 +130,9 @@ class Batchifier:
             # asset_list = set(list(map(str.upper,asset_list)))
             # print(asset_list)
             name = str.upper(name)
-            return self.dp.load_train_test(asset_name = asset_list, feature_type = name,
-                                           path=self.data_path, train_test_ratio=0.8)
+            return self.dp.load_train_test(asset_name = asset_list,
+                                           feature_type = name, path=self.data_path,
+                                           train_test_ratio=0.8)
 
 
 def test_load_stocks():
@@ -155,6 +156,7 @@ def test_load_crypto():
                            idx=0,
                            )
     return batch_obj
+
 if __name__ == "__main__":
     # batch_obj = test_load_stocks()
     batch_obj = test_load_crypto()

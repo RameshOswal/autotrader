@@ -74,19 +74,32 @@ class LSTMModel:
         return tf.nn.softmax(last_logit).numpy()
 
 
-    def loss(self, data, target, is_training=False):
-        prediction = tf.nn.softmax(self.logits(data, is_training),dim=2)
-        portfolio_ts = tf.multiply(prediction, target)
-        portfolio_comb = tf.reduce_sum(portfolio_ts, axis=2)
-        apv_batch = tf.reduce_prod(portfolio_comb,axis=1)
-        apv_mean = tf.reduce_mean(apv_batch)
-        return -apv_mean
+    def loss(self, data, target, is_training=False, one_hot_target = True):
+        if one_hot_target:
+            prediction = self.logits(data, is_training)
+            # num_assets = tf.shape(target)[-1]
+            idxs = tf.argmax(target, axis=2)
+            log_probs = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=prediction, labels=idxs)
+            return tf.reduce_mean(tf.reduce_sum(log_probs))
+            # target = tf.one_hot(idxs, depth = num_assets)
+            # portfolio_ts = tf.multiply(prediction, target)
+        else:
+            prediction = tf.nn.softmax(self.logits(data, is_training), axis=2)
+            portfolio_ts = tf.multiply(prediction, target)
+            portfolio_comb = tf.reduce_sum(portfolio_ts, axis=2)
+            apv_batch = tf.reduce_prod(portfolio_comb,axis=1)
+            apv_mean = tf.reduce_mean(apv_batch)
+            return -apv_mean
 
     def optimize(self, data, target):
         with tf.name_scope("backprop_fn"):
             gvs = self._optimizer.compute_gradients(lambda :self.loss(data, target, True))
             capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gvs]
             self._optimizer.apply_gradients(capped_gvs)
+
+    def weighted_one_hot(self, target):
+        pass
+
 
     def __repr__(self):
         return "Seq2SeqLSTM"

@@ -1,3 +1,7 @@
+import sys
+import os.path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from data_load.batchifier import Batchifier
 from models.lstm_model import LSTMModel, tf
 from literals import ASSET_LIST
@@ -12,14 +16,15 @@ DATA_PATH = "../dataset/Poloneix_Preprocessednew"
 BSZ=32
 BPTT=50
 asset_list=ASSET_LIST
-randomize_train=True
+randomize_train=False # Always set to false if replay = True
+replay=True
 overlapping_train=True
 IDX=0
 NUM_EPOCHS = 10
 INIT_PV=1000
 NUM_HID=20
 ASSETS = ASSET_LIST
-LR = 0.01
+LR = 1e-4
 
 if __name__ == '__main__':
     batch_gen = Batchifier(data_path=DATA_PATH, bsz=BSZ, bptt=BPTT, idx=IDX,
