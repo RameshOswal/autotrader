@@ -148,9 +148,15 @@ def test_load_stocks():
                            asset_list=stocks_name, data_preprocess=dp,
                            idx=0,
                            )
+
+def test_load_crypto():
+    batch_obj = Batchifier(data_path='../../dataset/Poloneix_Preprocessednew',
+                           asset_list=ASSET_LIST,
+                           idx=0,
+                           )
+    return batch_obj
+if __name__ == "__main__":
+    # batch_obj = test_load_stocks()
+    batch_obj = test_load_crypto()
     for x, y in batch_obj.load_batch(overlapping_batches=True, randomize_batches=False, is_test=False):
         print(x.shape, y.shape)
-
-
-if __name__ == "__main__":
-    test_load_stocks()
