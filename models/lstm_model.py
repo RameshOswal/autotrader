@@ -45,12 +45,9 @@ class LSTMModel:
     def build_model(self):
         self._optimizer = tf.train.AdamOptimizer(learning_rate=self._lr)
         self._cell = tf.keras.layers.LSTM(self._num_hid, return_sequences=True, unroll=True)
-        self._asset_wt_projection = tf.keras.Sequential([
-            tf.keras.layers.Dense(64, input_shape=[self._num_hid]),
-            tf.keras.layers.Dense(64),
-            tf.keras.layers.Dense(self._num_assets + 1)
-        ])
-        self._asset_wt_projection.build()
+        self._asset_wt_projection = [tf.keras.layers.Dense(64),
+                                     tf.keras.layers.Dense(64),
+                                     tf.keras.layers.Dense(self._num_assets + 1)]
 
     @lazy_property
     def logits(self):
@@ -62,7 +59,9 @@ class LSTMModel:
             net = self._cell(net)
         with tf.variable_scope("Asset_Projection", reuse=tf.AUTO_REUSE):
             net = tf.reshape(net, [-1, self._num_hid])
-            net = self._asset_wt_projection(net)
+            net = self._asset_wt_projection[0](net)
+            net = self._asset_wt_projection[1](net)
+            net = self._asset_wt_projection[2](net)
             net = tf.reshape(net, [-1, self._bptt, self._num_assets + 1])
         return net
 
