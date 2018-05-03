@@ -44,11 +44,10 @@ class LSTMModel:
 
     def build_model(self):
         self._optimizer = tf.train.AdamOptimizer(learning_rate=self._lr)
-        self._cell = tf.keras.layers.LSTM(self._num_hid, return_sequences=True, unroll=True)
-        self._asset_wt_projection = [tf.keras.layers.Dense(64),
-                                     tf.keras.layers.Dense(64),
-                                     tf.keras.layers.Dense(self._num_assets + 1)]
-
+        self._cell = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
+        self._asset_wt_projection = [tf.layers.Dense(64),
+                                     tf.layers.Dense(64),
+                                     tf.layers.Dense(self._num_assets + 1)]
     @lazy_property
     def logits(self):
         net = self.data
@@ -56,9 +55,10 @@ class LSTMModel:
         with tf.variable_scope("LSTM_Cell", reuse=tf.AUTO_REUSE):
             # bsz X bptt X (num_feats * num_assets)
             net = tf.reshape(net, [-1, shape[1], shape[2] * shape[3]])
-            net = self._cell(net)
+            net, _ = tf.nn.bidirectional_dynamic_rnn(self._cell, self._cell, net, dtype=tf.float32)
+            net = tf.concat(net, axis=2)
         with tf.variable_scope("Asset_Projection", reuse=tf.AUTO_REUSE):
-            net = tf.reshape(net, [-1, self._num_hid])
+            net = tf.reshape(net, [-1, 2 * self._num_hid])
             net = self._asset_wt_projection[0](net)
             net = self._asset_wt_projection[1](net)
             net = self._asset_wt_projection[2](net)
@@ -78,7 +78,6 @@ class LSTMModel:
     @lazy_property
     def optimize(self):
         with tf.variable_scope("optimize_op", reuse=tf.AUTO_REUSE):
-            tf.keras.backend.set_learning_phase(1)
             params = tf.trainable_variables()
             grads = tf.gradients(self.loss, params)
             grads, grad_norm = tf.clip_by_global_norm(grads, self._clip_norm)
@@ -87,5 +86,4 @@ class LSTMModel:
     @lazy_property
     def predict_portfolio_allocation(self):
         with tf.variable_scope("portfolio_wt_op", reuse=tf.AUTO_REUSE):
-            tf.keras.backend.set_learning_phase(0)
             return tf.nn.softmax(self.logits[:, -1, :])

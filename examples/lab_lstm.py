@@ -40,15 +40,23 @@ if __name__ == '__main__':
         losses = []
         for epoch in range(1,NUM_EPOCHS + 1):
             for bTrainX, bTrainY in batch_gen.load_train():
+                # if buffer.size < buffer.max_size:
                 _, loss = sess.run([model.optimize, model.loss], feed_dict = {
                     model.data: bTrainX, model.target: bTrainY
                 })
+                #     buffer.add([bTrainX, bTrainY], bsz=len(bTrainX))
+                # else:
+                #     vars = buffer.get_batch(bsz = BSZ)
+                #     _, loss = sess.run([model.optimize, model.loss], feed_dict={
+                #         model.data: vars[0], model.target: vars[1]
+                #     })
                 losses.append(loss)
             print("Epoch {} Average Train Loss: {}, validating...".format(epoch, sum(losses)/len(losses)))
             losses = []
             allocation_wts = []
             price_change_vec = []
             for bEvalX, bEvalY in batch_gen.load_test():
+                # if buffer.size < buffer.max_size:
                 pred_allocations = sess.run(model.predict_portfolio_allocation,
                                             feed_dict = {
                                                 model.data: bEvalX
@@ -56,6 +64,17 @@ if __name__ == '__main__':
                 assert bEvalY.shape == pred_allocations.shape
                 price_change_vec.append(bEvalY)
                 allocation_wts.append(pred_allocations)
+                #     buffer.add([bEvalX, bEvalY], bsz=len(bEvalX))
+                # else:
+                #     vars = buffer.get_batch(bsz=BSZ)
+                #     pred_allocations = sess.run(model.predict_portfolio_allocation,
+                #                                 feed_dict={
+                #                                     model.data: vars[0]
+                #                                 })
+                #     assert bEvalY.shape == pred_allocations.shape
+                #     price_change_vec.append(vars[1])
+                #     allocation_wts.append(pred_allocations)
+
             true_change_vec = np.concatenate(price_change_vec)
             allocation_wts = np.concatenate(allocation_wts)
 
@@ -64,5 +83,5 @@ if __name__ == '__main__':
             m = get_metrics(dt_range=test_date)
             print("Our Policy:")
             m.apv_multiple_asset(true_change_vec, allocation_wts, get_graph=True, pv_0=INIT_PV)
-            print("Random Policy:")
-            m.apv_multiple_asset(true_change_vec, random_alloc_wts, get_graph=True, pv_0=INIT_PV)
+            # print("Random Policy:")
+            # m.apv_multiple_asset(true_change_vec, random_alloc_wts, get_graph=False, pv_0=INIT_PV)

@@ -1,53 +1,57 @@
 import numpy as np
+from collections import deque
 
 class ReplayBuffer:
     def __init__(self, buffer_size):
         self.max_size = buffer_size
         # Pool is a list of tuples (states, reward, action)
-        self.pool = []
+        self.pool = deque()
         self.size = 0
+        self.num_elem = 0
 
-    def add(self, state, reward, action):
+    def add(self, vars, bsz):
         """
-        :param state (X): bsz X bptt X num_feats * num_assets
-        :param reward (y): bsz
-        :param action (weights): bsz X num_assets
+        :param vars: list of elements whose first dimensions are EQUAL. [states, rewards, actions, ...]
+            :param state (X): bsz X bptt X num_feats * num_assets
+            :param reward (y): bsz
+            :param action (weights): bsz X num_assets
         """
-        assert len(state) == len(reward) and len(reward) == len(action), "Dimension Mismatch (REPLAY BUFFER)"
+        # assert len(state) == len(reward) and len(reward) == len(action), "Dimension Mismatch (REPLAY BUFFER)"
+        self.num_elem = len(vars)
 
-        for batch in range(state.shape[0]):
-            if len(self.pool) < self.max_size:
-                self.pool.append((state[batch, :, :], reward[batch], action[batch, :]))
+        for batch in range(bsz):
+            if self.size < self.max_size:
+                self.pool.append(tuple([elem[batch] for elem in vars]))
+                self.size += 1
             else:
-                self.pool.remove(np.random.randint(0, self.max_size))
-                self.pool.append((state[batch, :, :], reward[batch], action[batch, :]))
-            self.size += 1
+                self.pool.popleft()
+                self.pool.append(tuple([elem[batch] for elem in vars]))
 
-        assert len(self.pool) == self.size, "Error in Adding Elements to Buffer!"
+        assert len(self.pool) == self.size, "Error in Adding Elements to Buffer! Sizes = {} and {}".format(len(self.pool), self.size)
 
     def clear(self):
-        self.pool = []
+        self.pool = deque()
         self.size = 0
 
     def get_batch(self, bsz = 0):
         """
         :param bsz: batch size
-        :return: states, rewards, actions
+        :return: list of vars [states, rewards, actions, ...]
         """
         ids = np.arange(start=0, stop=self.size)
         np.random.shuffle(ids)
 
-        states, rewards, actions = [], [], []
+        out_vars = {_ : [] for _ in range(self.num_elem)}
         for batch in ids[:bsz]:
             tup = self.pool[batch]
-            states.append(tup[0])
-            rewards.append(tup[1])
-            actions.append(tup[2])
+            for idx in range(len(tup)):
+                out_vars[idx].append(tup[idx])
 
         # Pop out the elements
-        for batch in ids: self.pool.remove(batch)
+        for _ in range(bsz): self.pool.popleft()
+
         self.size -= bsz
 
         assert len(self.pool) == self.size, "Error in Replay Buffer Pool Size!"
 
-        return np.stack(states, axis = 0), np.stack(rewards, axis = 0), np.stack(actions, axis = 0)
+        return [np.stack(out_vars[x], axis = 0) for x in out_vars]
