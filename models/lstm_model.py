@@ -50,6 +50,7 @@ class LSTMModel:
             tf.keras.layers.Dense(64),
             tf.keras.layers.Dense(self._num_assets + 1)
         ])
+        self._asset_wt_projection.build()
 
     @lazy_property
     def logits(self):
@@ -78,6 +79,7 @@ class LSTMModel:
     @lazy_property
     def optimize(self):
         with tf.variable_scope("optimize_op", reuse=tf.AUTO_REUSE):
+            tf.keras.backend.set_learning_phase(1)
             params = tf.trainable_variables()
             grads = tf.gradients(self.loss, params)
             grads, grad_norm = tf.clip_by_global_norm(grads, self._clip_norm)
@@ -86,4 +88,5 @@ class LSTMModel:
     @lazy_property
     def predict_portfolio_allocation(self):
         with tf.variable_scope("portfolio_wt_op", reuse=tf.AUTO_REUSE):
+            tf.keras.backend.set_learning_phase(0)
             return tf.nn.softmax(self.logits[:, -1, :])
