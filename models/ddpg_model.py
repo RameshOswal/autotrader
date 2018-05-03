@@ -16,7 +16,7 @@
 #     return decorator
 #
 #
-# class LSTMModel:
+# class DDPGActor:
 #
 #     def __init__(self, num_hid=20, clip_norm=0.25,
 #                  num_features=3, num_assets=9,
@@ -34,6 +34,7 @@
 #             self.target =  tf.placeholder(tf.float32, [None, self._bptt, self._num_assets + 1])
 #         self.build_model()
 #
+#
 #     def build_model(self):
 #         self._optimizer = tf.train.AdamOptimizer(learning_rate=self._lr)
 #         self._cell = tf.keras.layers.LSTM(self._num_hid, return_sequences=True, unroll=True)
@@ -43,7 +44,6 @@
 #             tf.keras.layers.Dense(self._num_assets)
 #         ])
 #
-#     @lazy_property
 #     def logits(self):
 #         net = self.data
 #         shape = net.get_shape().as_list()
@@ -51,31 +51,16 @@
 #             # bsz X bptt X (num_feats * num_assets)
 #             net = tf.reshape(net, [-1, shape[1], shape[2] * shape[3]])
 #             net = self._cell(net)
-#         with tf.variable_scope("Asset_Projection", reuse=tf.AUTO_REUSE):
+#         with tf.variable_scope("DenseOutput", reuse=tf.AUTO_REUSE):
 #             net = tf.reshape(net, [-1, self._num_hid])
 #             net = self._asset_wt_projection(net)
-#             net = tf.reshape(net, [-1, self._bptt, self._num_assets + 1])
 #         return net
 #
-#     @lazy_property
-#     def loss(self):
-#         with tf.variable_scope("loss_op", reuse=tf.AUTO_REUSE):
-#             optimal_action = tf.argmax(self.target, axis = 2)
-#             predicted_action = self.logits
-#             log_probs = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predicted_action,
-#                                                                        labels=optimal_action)
-#             loss = tf.reduce_mean(tf.reduce_sum(log_probs, axis = 1))
-#             return loss
-#
-#     @lazy_property
 #     def optimize(self):
-#         with tf.variable_scope("optimize_op", reuse=tf.AUTO_REUSE):
-#             params = tf.trainable_variables()
-#             grads = tf.gradients(self.loss, params)
-#             grads, grad_norm = tf.clip_by_global_norm(grads, self._clip_norm)
-#             return self._optimizer.apply_gradients(zip(grads, params))
 #
-#     @lazy_property
-#     def predict_portfolio_allocation(self):
-#         with tf.variable_scope("portfolio_wt_op", reuse=tf.AUTO_REUSE):
-#             return tf.nn.softmax(self.logits[:, -1, :])
+#
+#
+#
+#
+#
+#
