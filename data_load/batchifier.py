@@ -108,6 +108,7 @@ class Batchifier:
             # X[0], y[0] is a zero pad meant for vstack convenience
             X = np.array(X)
             y = np.array(y)
+
             assert len(X.shape) == 4, "X shape: {}".format(X.shape)
             assert X.shape[1] == self.bptt and X.shape[2] == 3 and X.shape[3] == len(self.asset_list), "X shape: {}".format(X.shape)
             assert y.shape[1] == self.bptt and y.shape[2] == len(self.asset_list) + 1
