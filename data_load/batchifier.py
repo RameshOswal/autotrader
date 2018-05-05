@@ -82,6 +82,8 @@ class Batchifier:
             s_ids = shuffle_ids[batch_idx]
 
             # X.shape => (bptt X num_features X num_assets), y.shape => (bptt X num_assets + 1)
+            # X = []
+            # y = []
 
             # for s_idx in s_ids:
             h_batch = high.iloc[s_ids: s_ids + self.bptt, :]
@@ -100,15 +102,17 @@ class Batchifier:
             y_out = close.iloc[s_ids + 1: s_ids + self.bptt + 1, :].as_matrix() / c_batch
             y_out = np.pad(y_out , [(0, 0), (0,1)], constant_values=1, mode="constant")
             x_out = x_out.transpose([1, 0, 2])
-
+                # X.append(x_out)
+                # y.append(y_out)
             # X[0], y[0] is a zero pad meant for vstack convenience
             X = x_out
             y = y_out
 
-            # assert len(X.shape) == 3, "X shape: {}".format(X.shape)
-            # assert X.shape[0] == self.bptt and X.shape[1] == 3 and X.shape[2] == len(self.asset_list), "X shape: {}".format(X.shape)
-            # assert y.shape[0] == self.bptt and y.shape[1] == len(self.asset_list) + 1
-            # assert len(X) == len(y)
+            assert len(X.shape) == 3, "X shape: {}".format(X.shape)
+            assert X.shape[0] == self.bptt and X.shape[1] == 3 and X.shape[2] == len(self.asset_list), "X shape: {}".format(X.shape)
+            assert y.shape[0] == self.bptt and y.shape[1] == len(self.asset_list) + 1
+            assert len(X) == len(y)
+
             if is_test:
                 yield X, y[-1, :]
             else:

@@ -67,3 +67,67 @@ Epoch 22 Average Train Loss: 1.91216244006298, validating...
 Our Policy:
 MDD = -0.023364566032357065, fAPV = 1243.0034460538898
 
+-----------------------------
+
+/home/stripathi/anaconda2/envs/tf3/bin/python /home/stripathi/Desktop/11785deep/autotrader/examples/lab_lstm.py
+/home/stripathi/anaconda2/envs/tf3/lib/python3.6/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+2018-05-05 18:54:04.742538: I tensorflow/core/platform/cpu_feature_guard.cc:137] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX AVX2 FMA
+Loss after Mini Batch 1.0 Epoch 1 = 3.290816080927849
+Loss after Mini Batch 2.0 Epoch 1 = 2.2095248581171036
+Loss after Mini Batch 3.0 Epoch 1 = 2.1424746582508085
+Loss after Mini Batch 4.0 Epoch 1 = 2.1274181213378904
+Loss after Mini Batch 5.0 Epoch 1 = 2.1086022161245346
+Loss after Mini Batch 6.0 Epoch 1 = 1.998935338139534
+Loss after Mini Batch 7.0 Epoch 1 = 2.058890097141266
+Loss after Mini Batch 8.0 Epoch 1 = 2.100261978149414
+Loss after Mini Batch 9.0 Epoch 1 = 2.1252074337005613
+Loss after Mini Batch 10.0 Epoch 1 = 2.215371834993362
+Loss after Mini Batch 11.0 Epoch 1 = 2.2522074704170225
+Loss after Mini Batch 12.0 Epoch 1 = 2.2156154042482377
+Loss after Mini Batch 13.0 Epoch 1 = 2.1145864590406416
+Loss after Mini Batch 14.0 Epoch 1 = 2.109593005657196
+Loss after Mini Batch 15.0 Epoch 1 = 2.0618134682178497
+Loss after Mini Batch 16.0 Epoch 1 = 2.098696960091591
+Loss after Mini Batch 17.0 Epoch 1 = 2.078524196743965
+Loss after Mini Batch 18.0 Epoch 1 = 2.120502247810364
+Loss after Mini Batch 19.0 Epoch 1 = 2.1172398023605346
+Loss after Mini Batch 20.0 Epoch 1 = 1.6997257208824157
+Loss after Mini Batch 21.0 Epoch 1 = 1.509676156282425
+Loss after Mini Batch 22.0 Epoch 1 = 1.581748420715332
+Loss after Mini Batch 23.0 Epoch 1 = 1.546386545777321
+Loss after Mini Batch 24.0 Epoch 1 = 1.5239368900060655
+Loss after Mini Batch 25.0 Epoch 1 = 1.503342892408371
+Loss after Mini Batch 26.0 Epoch 1 = 1.5445372503995896
+Loss after Mini Batch 27.0 Epoch 1 = 1.6004132241010667
+Loss after Mini Batch 28.0 Epoch 1 = 1.6007880815267563
+Loss after Mini Batch 29.0 Epoch 1 = 1.6533326889276505
+Loss after Mini Batch 30.0 Epoch 1 = 1.6577568238973617
+Loss after Mini Batch 31.0 Epoch 1 = 1.436299290060997
+Loss after Mini Batch 32.0 Epoch 1 = 1.367600496172905
+Epoch 1 Average Train Loss: 1.927971143217853, validating...
+Epoch 1 Average Test Loss: 13.198824384084945,
+Our Policy:
+MDD = -0.008242781022407313, fAPV = 3027.5933858690314
+Loss after Mini Batch 1.0 Epoch 2 = 1.952718339085579
+Loss after Mini Batch 2.0 Epoch 2 = 1.8381929218769073
+Loss after Mini Batch 3.0 Epoch 2 = 1.8633843933343888
+Loss after Mini Batch 4.0 Epoch 2 = 1.8796026391983032
+Loss after Mini Batch 5.0 Epoch 2 = 1.8473811811208725
+Loss after Mini Batch 6.0 Epoch 2 = 1.8179979066848755
+Loss after Mini Batch 7.0 Epoch 2 = 1.8480950775146485
+Loss after Mini Batch 8.0 Epoch 2 = 2.000141900420189
+Loss after Mini Batch 9.0 Epoch 2 = 2.0277344306707383
+Loss after Mini Batch 10.0 Epoch 2 = 2.1357121429443358
+Loss after Mini Batch 11.0 Epoch 2 = 2.158018321633339
+Loss after Mini Batch 12.0 Epoch 2 = 2.156785837650299
+Loss after Mini Batch 13.0 Epoch 2 = 2.0747611693143844
+Loss after Mini Batch 14.0 Epoch 2 = 2.0691863270998003
+Loss after Mini Batch 15.0 Epoch 2 = 2.0476266276836395
+Loss after Mini Batch 16.0 Epoch 2 = 2.073324025988579
+Loss after Mini Batch 17.0 Epoch 2 = 2.0920275313854217
+Loss after Mini Batch 18.0 Epoch 2 = 2.1097656391859054
+Loss after Mini Batch 19.0 Epoch 2 = 2.1219140714406968
+Loss after Mini Batch 20.0 Epoch 2 = 1.8036419796943663
+Loss after Mini Batch 21.0 Epoch 2 = 1.5178772025108338
+Loss after Mini Batch 22.0 Epoch 2 = 1.5682031905651093

@@ -68,3 +68,44 @@ MDD = -0.034735135205131884, fAPV = 1806.8981087640962
 Epoch 22 Average Train Loss: 1.9220231830250818, validating...
 Our Policy:
 MDD = -0.016587514929369294, fAPV = 1721.2451069550186
+-------
+
+
+
+Epoch 1 Average Train Loss: 1.8148666212465365, validating...
+Epoch 1 Average Test Loss: 2.2063300212224326,
+Our Policy:
+MDD = -0.015964142102630814, fAPV = 1420.637592956755
+Epoch 2 Average Train Loss: 1.819035413850342, validating...
+Epoch 2 Average Test Loss: 2.170301673834216,
+Our Policy:
+MDD = -0.019283715635410936, fAPV = 1467.6376865657762
+Epoch 3 Average Train Loss: 1.8161569406624702, validating...
+Epoch 3 Average Test Loss: 2.1592398617002697,
+Our Policy:
+MDD = -0.010629236795472981, fAPV = 1507.670873422665
+Epoch 4 Average Train Loss: 1.8148189101259895, validating...
+Epoch 4 Average Test Loss: 2.170393990881649,
+Our Policy:
+MDD = -0.020386266640938448, fAPV = 1450.2402674718799
+Epoch 5 Average Train Loss: 1.8150272780088863, validating...
+Epoch 5 Average Test Loss: 2.156367622285223,
+Our Policy:
+MDD = -0.02018325052087098, fAPV = 1518.630559188627
+Epoch 6 Average Train Loss: 1.8155989155176517, validating...
+Epoch 6 Average Test Loss: 2.1655167017453985,
+Our Policy:
+MDD = -0.010301661776347136, fAPV = 1567.1374451061363
+Epoch 7 Average Train Loss: 1.814508236249435, validating...
+Epoch 7 Average Test Loss: 2.169141328874439,
+Our Policy:
+MDD = -0.010254973146983917, fAPV = 1526.9806785539408
+Epoch 8 Average Train Loss: 1.8148352622603652, validating...
+Epoch 8 Average Test Loss: 2.1663396319244135,
+Our Policy:
+MDD = -0.02004454968715223, fAPV = 1513.378926368502
+Epoch 9 Average Train Loss: 1.8142471696766087, validating...
+Epoch 9 Average Test Loss: 2.1677631036734875,
+Our Policy:
+MDD = -0.010234146055810316, fAPV = 1521.1494666121037
+
