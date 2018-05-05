@@ -3,6 +3,9 @@ import os
 from glob import glob
 import pandas as pd
 import os
+import  numpy as np
+import helper
+
 class DataPreprocess:
     def __init__(self, input_folder_name='../../dataset/stock_data',
                  output_folder_name='../../dataset/stock_data_Preprocessed',
@@ -48,7 +51,7 @@ class DataPreprocess:
             path = os.path.join(self.output_folder_name, self.processed_file_name)
         self.dataset = pd.read_csv(path)
 
-    def load_train_test(self, feature_type='OPEN', asset_name="FB", path="", train_test_ratio=0.8):
+    def load_train_test(self, feature_type='OPEN', asset_name="FB", path="", train_test_ratio=0.8, rl_env=False):
         """
 
         :param feature_type: Name of Feature like open, close etc.
@@ -71,19 +74,22 @@ class DataPreprocess:
 
         row_count = value.shape[0]
         num_train_rows = int(row_count * train_test_ratio)
+        if rl_env == True:
+            value = helper.convert_to_env_data(value)
+            return value[:,0:num_train_rows,:], value[:,num_train_rows:,:]
         return value.iloc[0:num_train_rows], value.iloc[num_train_rows:]
 
 if __name__=='__main__':
-
     input_folder_name = '../../dataset/stock_data'
     output_folder_name = '../../dataset/stock_data_Preprocessed'
 
     data = DataPreprocess(input_folder_name=input_folder_name,
                           output_folder_name=output_folder_name,
                           )
-    data.preprocess()
+    # data.preprocess()
     # data.asset_names()
     # tr, te = data.load_train_test()
     # print(tr.head(2), te.head(2))
-    # tr, te = data.load_train_test(asset_name=['FB','AAPL'] ,feature_type='OPEN', train_test_ratio=0.5, path='preprocessed_Stock_data.csv')
-    # print(tr.head(2), te.head(2))
+    tr, te = data.load_train_test(asset_name=['FB','AAPL'] ,feature_type='OPEN',
+                                  train_test_ratio=0.8, path='../../dataset/stock_data_Preprocessed/preprocessed_Stock_data.csv', rl_env=True)
+    print(tr.shape, te.shape)

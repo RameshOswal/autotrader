@@ -1,5 +1,6 @@
 import os
 # from literals import *
+import helper
 
 def fileInfo(pathname="dataset/poloneix_data\\BTC_BTCD.csv-2014-07-01 00_00_00-2016-05-07 00_00_00"):
     basename = os.path.basename(pathname)
@@ -59,7 +60,10 @@ class DataPreprocess:
         return dataset
 
 
-    def load_train_test(self, feature_type='open', datatype="bffill_", asset_name="BTC_XEM", path="../../dataset/Poloneix_Preprocessednew", idx = 0):
+    def load_train_test(self, feature_type='open', datatype="bffill_",
+                        asset_name="BTC_XEM",
+                        path="../../dataset/Poloneix_Preprocessednew", idx = 0,
+                        rl_env =False):
         dataset = self.load_dataset(file_prefix=datatype, dataset_path=path)
         train_data, test_data = {}, {}
         for key in dataset:
@@ -79,6 +83,10 @@ class DataPreprocess:
         train_date = "_".join(self.train_dates[idx])
         test_date  = "_".join(self.test_dates[idx])
         # print("***************** Loading ", feature_type, " for Asset:", asset_name, " for data:", datatype, " for Train Dates:", train_date, " for Test Dates:", test_date)
+
+        if rl_env == True:
+            return helper.convert_to_env_data(train_data[train_date]), helper.convert_to_env_data(test_data[test_date])
+
         return train_data[train_date], test_data[test_date]
 
     def dropna(self):
@@ -116,3 +124,18 @@ class DataPreprocess:
                     # print("************Warning: Data Missing for ", asset, " between ", start_date, " to ", end_date, "**************" )
             # print("********************************Saving File :"" between ", start_date, " to ", end_date, ' ***************************' )
             self.dataset[file+'_'+start_date+'_'+end_date] = train_df
+
+if __name__=='__main__':
+    input_folder_name = '../../dataset/poloneix_data'
+    output_folder_name = '../../dataset/Poloneix_Preprocessednew'
+
+    data = DataPreprocess(input_folder_name=input_folder_name,
+                          output_folder_name=output_folder_name,
+                          )
+    # data.preprocess()
+    # data.asset_names()
+    # tr, te = data.load_train_test()
+    # print(tr.head(2), te.head(2))
+    tr, te = data.load_train_test(asset_name=['BTC_XEM','BTC_ETH'] ,feature_type='high',
+                                path='../../dataset/Poloneix_Preprocessednew', rl_env=True)
+    print(tr.shape, te.shape)
