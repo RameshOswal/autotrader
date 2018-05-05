@@ -24,7 +24,7 @@ overlapping_train=True
 IDX=0
 NUM_EPOCHS = 100
 INIT_PV=1000
-NUM_HID=20
+NUM_HID=200
 ASSETS = ASSET_LIST
 LR = 1e-4
 

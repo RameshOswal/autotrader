@@ -1,7 +1,5 @@
 import tensorflow as tf
 import functools
-import os
-import numpy as np
 
 def lazy_property(function):
     attribute = '_cache_' + function.__name__
@@ -20,7 +18,8 @@ class LSTMModel:
 
     def __init__(self, num_hid=20, clip_norm=0.25,
                  num_features=3, num_assets=9,
-                 bptt=5, lr=0.001, bsz=12):
+                 bptt=5, lr=0.001, bsz=12,
+                 num_dense_units=64):
         tf.reset_default_graph()
         self._num_hid = num_hid
         self._clip_norm = clip_norm
@@ -30,7 +29,7 @@ class LSTMModel:
         self._is_training = False
         self._bsz = bsz
         self._lr = lr
-        self._gs = tf.train.create_global_step()
+        self._num_dense_units = num_dense_units
         self.tf_init = tf.global_variables_initializer
         with tf.name_scope("inputs"):
             self.data = tf.placeholder(tf.float32, [None, self._bptt, self._num_features, self._num_assets])
@@ -45,8 +44,8 @@ class LSTMModel:
     def build_model(self):
         self._optimizer = tf.train.AdamOptimizer(learning_rate=self._lr)
         self._cell = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
-        self._asset_wt_projection = [tf.layers.Dense(64),
-                                     tf.layers.Dense(64),
+        self._asset_wt_projection = [tf.layers.Dense(self._num_dense_units),
+                                     tf.layers.Dense(self._num_dense_units),
                                      tf.layers.Dense(self._num_assets + 1)]
     @lazy_property
     def logits(self):
