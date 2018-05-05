@@ -16,7 +16,7 @@ def lazy_property(function):
     return decorator
 
 
-class LSTMModel:
+class CNNModel:
 
     def __init__(self, num_hid=20, clip_norm=0.25,
                  num_features=3, num_assets=9,
@@ -35,11 +35,12 @@ class LSTMModel:
         with tf.name_scope("inputs"):
             self.data = tf.placeholder(tf.float32, [None, self._bptt, self._num_features, self._num_assets])
             self.target =  tf.placeholder(tf.float32, [None, self._bptt, self._num_assets + 1])
-        self.build_model()
 
-        self.n_channels = [20, 20]
-        self.kernel_sizes = [8, 8]
+        self.n_channels = [32, 32]
+        self.kernel_sizes = [3, 3]
         self.strides = [1, 1]
+
+        self.build_model()
 
         self.logits
         self.loss
@@ -67,13 +68,14 @@ class LSTMModel:
         with tf.variable_scope("LSTM_Cell", reuse=tf.AUTO_REUSE):
             # bsz X bptt X (num_feats * num_assets)
             net = tf.reshape(net, [-1, shape[1], shape[2] * shape[3]])
-            net = self.conv_layers[0](tf.expand_dims(net, axis = 1))
-            net = self.conv_layers[0](net)
+            net = tf.expand_dims(net, axis = 1)
+
+            net = tf.nn.relu(self.conv_layers[0](net))
+            net = tf.nn.relu(self.conv_layers[1](net))
             net = tf.squeeze(net, axis=1)
-            net, _ = tf.nn.bidirectional_dynamic_rnn(self._cell, self._cell, net, dtype=tf.float32)
-            net = tf.concat(net, axis=2)
+
         with tf.variable_scope("Asset_Projection", reuse=tf.AUTO_REUSE):
-            net = tf.reshape(net, [-1, 2 * self._num_hid])
+            net = tf.reshape(net, [-1, self.n_channels[-1]])
             net = self._asset_wt_projection[0](net)
             net = self._asset_wt_projection[1](net)
             net = self._asset_wt_projection[2](net)
