@@ -47,21 +47,21 @@ if __name__ == '__main__':
         losses = []
         for epoch in range(1,NUM_EPOCHS + 1):
             for bTrainX, bTrainY in batch_gen.load_train():
-                # if replay == 0:
-                _, loss = sess.run([model.optimize, model.loss], feed_dict={
-                    model.data: bTrainX, model.target: bTrainY
-                })
-                # else:
-                #     if buffer.size < buffer.max_size:
-                #         _, loss = sess.run([model.optimize, model.loss], feed_dict={
-                #             model.data: bTrainX, model.target: bTrainY
-                #         })
-                #         buffer.add([bTrainX, bTrainY], bsz=len(bTrainX))
-                #     else:
-                #         vars = buffer.get_batch(bsz=BSZ)
-                #         _, loss = sess.run([model.optimize, model.loss], feed_dict={
-                #             model.data: vars[0], model.target: vars[1]
-                #         })
+                if replay == 0:
+                    _, loss = sess.run([model.optimize, model.loss], feed_dict={
+                        model.data: bTrainX, model.target: bTrainY
+                    })
+                else:
+                    if buffer.size < buffer.max_size:
+                        _, loss = sess.run([model.optimize, model.loss], feed_dict={
+                            model.data: bTrainX, model.target: bTrainY
+                        })
+                        buffer.add([bTrainX, bTrainY], bsz=len(bTrainX))
+                    else:
+                        vars = buffer.get_batch(bsz=BSZ)
+                        _, loss = sess.run([model.optimize, model.loss], feed_dict={
+                            model.data: vars[0], model.target: vars[1]
+                        })
 
                 losses.append(loss)
             print("Epoch {} Average Train Loss: {}, validating...".format(epoch, sum(losses)/len(losses)))
