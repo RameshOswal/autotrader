@@ -76,47 +76,43 @@ class Batchifier:
             if not is_test and randomize_batches:
                 np.random.shuffle(shuffle_ids)
 
-        num_batches = len(shuffle_ids) // self.bsz
-        num_batches = (num_batches if len(shuffle_ids) % self.bsz == 0 else num_batches + 1)
+        num_batches = len(shuffle_ids)
 
         for batch_idx in range(num_batches):
-            s_ids = shuffle_ids[batch_idx * self.bsz: (batch_idx + 1) * self.bsz]
+            s_ids = shuffle_ids[batch_idx]
 
             # X.shape => (bptt X num_features X num_assets), y.shape => (bptt X num_assets + 1)
-            X = []
-            y = []
 
-            for s_idx in s_ids:
-                h_batch = high.iloc[s_idx: s_idx + self.bptt, :]
-                l_batch = low.iloc[s_idx: s_idx + self.bptt, :]
-                c_batch = close.iloc[s_idx: s_idx + self.bptt, :]
+            # for s_idx in s_ids:
+            h_batch = high.iloc[s_ids: s_ids + self.bptt, :]
+            l_batch = low.iloc[s_ids: s_ids + self.bptt, :]
+            c_batch = close.iloc[s_ids: s_ids + self.bptt, :]
 
-                # Convert all three to matrix form, out.shape => (num_features X bptt X num_assets)
-                x_out = np.array([h_batch.as_matrix(), l_batch.as_matrix(), c_batch.as_matrix()])
+            # Convert all three to matrix form, out.shape => (num_features X bptt X num_assets)
+            x_out = np.array([h_batch.as_matrix(), l_batch.as_matrix(), c_batch.as_matrix()])
 
-                #(saatvik): Why will this happen??
-                if len(h_batch) != self.bptt:
-                    continue
+            #(saatvik): Why will this happen??
+            if len(h_batch) != self.bptt:
+                continue
 
-                # Relative price change(num_assets + 1(indicating change in cash==constant))
-                # Note that last column indicates cash
-                y_out = close.iloc[s_idx + 1: s_idx + self.bptt + 1, :].as_matrix() / c_batch
-                y_out = np.pad(y_out , [(0, 0), (0,1)], constant_values=1, mode="constant")
-                x_out = x_out.transpose([1, 0, 2])
-                X.append(x_out)
-                y.append(y_out)
+            # Relative price change(num_assets + 1(indicating change in cash==constant))
+            # Note that last column indicates cash
+            y_out = close.iloc[s_ids + 1: s_ids + self.bptt + 1, :].as_matrix() / c_batch
+            y_out = np.pad(y_out , [(0, 0), (0,1)], constant_values=1, mode="constant")
+            x_out = x_out.transpose([1, 0, 2])
+
             # X[0], y[0] is a zero pad meant for vstack convenience
-            X = np.array(X)
-            y = np.array(y)
+            X = x_out
+            y = y_out
 
-            assert len(X.shape) == 4, "X shape: {}".format(X.shape)
-            assert X.shape[1] == self.bptt and X.shape[2] == 3 and X.shape[3] == len(self.asset_list), "X shape: {}".format(X.shape)
-            assert y.shape[1] == self.bptt and y.shape[2] == len(self.asset_list) + 1
-            assert len(X) == len(y)
+            # assert len(X.shape) == 3, "X shape: {}".format(X.shape)
+            # assert X.shape[0] == self.bptt and X.shape[1] == 3 and X.shape[2] == len(self.asset_list), "X shape: {}".format(X.shape)
+            # assert y.shape[0] == self.bptt and y.shape[1] == len(self.asset_list) + 1
+            # assert len(X) == len(y)
             if is_test:
-                yield X, y[:, -1, :]
+                yield X, y[-1, :]
             else:
-                yield X, y
+                yield X, y[-1, :]
 
 
     def loader(self, name, asset_list = ASSET_LIST, idx = 0):
