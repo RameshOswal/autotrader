@@ -113,10 +113,7 @@ class Batchifier:
             assert X.shape[1] == self.bptt and X.shape[2] == 3 and X.shape[3] == len(self.asset_list), "X shape: {}".format(X.shape)
             assert y.shape[1] == self.bptt and y.shape[2] == len(self.asset_list) + 1
             assert len(X) == len(y)
-            if is_test:
-                yield X, y[:, -1, :]
-            else:
-                yield X, y
+            yield X, y
 
 
     def loader(self, name, asset_list = ASSET_LIST, idx = 0):
@@ -136,30 +133,30 @@ class Batchifier:
                                            train_test_ratio=0.8)
 
 
-def test_load_stocks():
-    """
-    Function used to test the load_Stocks
-    :return:
-    """
-    dp = stocks.DataPreprocess()
-    # dp.load_preprocessed('../../dataset/stock_data_Preprocessed/preprocessed_Stock_data.csv')
-    dp.load_preprocessed('../../dataset/5yrs_preprocessed/all_5_yrs_processed.csv')
-    stocks_name = dp.asset_names()
-    print(stocks_name)
-    batch_obj = Batchifier(data_path='../../dataset/5yrs_preprocessed/all_5_yrs_processed.csv',
-                           asset_list=stocks_name, data_preprocess=dp,
-                           idx=0,
-                           )
-
-def test_load_crypto():
-    batch_obj = Batchifier(data_path='../../dataset/Poloneix_Preprocessednew',
-                           asset_list=ASSET_LIST,
-                           idx=0,
-                           )
-    return batch_obj
-
-if __name__ == "__main__":
-    # batch_obj = test_load_stocks()
-    batch_obj = test_load_crypto()
-    for x, y in batch_obj.load_batch(overlapping_batches=True, randomize_batches=False, is_test=False):
-        print(x.shape, y.shape)
+# def test_load_stocks():
+#     """
+#     Function used to test the load_Stocks
+#     :return:
+#     """
+#     dp = stocks.DataPreprocess()
+#     # dp.load_preprocessed('../../dataset/stock_data_Preprocessed/preprocessed_Stock_data.csv')
+#     dp.load_preprocessed('../../dataset/5yrs_preprocessed/all_5_yrs_processed.csv')
+#     stocks_name = dp.asset_names()
+#     print(stocks_name)
+#     batch_obj = Batchifier(data_path='../../dataset/5yrs_preprocessed/all_5_yrs_processed.csv',
+#                            asset_list=stocks_name, data_preprocess=dp,
+#                            idx=0,
+#                            )
+#
+# def test_load_crypto():
+#     batch_obj = Batchifier(data_path='../../dataset/Poloneix_Preprocessednew',
+#                            asset_list=ASSET_LIST,
+#                            idx=0,
+#                            )
+#     return batch_obj
+#
+# if __name__ == "__main__":
+#     # batch_obj = test_load_stocks()
+#     batch_obj = test_load_crypto()
+#     for x, y in batch_obj.load_batch(overlapping_batches=True, randomize_batches=False, is_test=False):
+#         print(x.shape, y.shape)

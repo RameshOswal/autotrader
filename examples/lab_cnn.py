@@ -4,7 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import data_load.load_stocks as stocks
 from data_load.batchifier import Batchifier
-from models.lstm_model import LSTMModel, tf
+from models.cnn_model import CNNModel, tf
 from literals import ASSET_LIST
 import numpy as np
 from get_metrics import get_metrics
@@ -33,7 +33,7 @@ if __name__ == '__main__':
                            asset_list=ASSETS, randomize_train=randomize_train,
                            overlapping_train=overlapping_train)
 
-    model = LSTMModel(num_hid=NUM_HID, bptt=BPTT, num_assets=len(asset_list), lr=LR, clip_norm=5.0)
+    model = CNNModel(num_hid=NUM_HID, bptt=BPTT, num_assets=len(asset_list), lr=LR, clip_norm=5.0)
 
     with tf.Session() as sess:
         sess.run(model.tf_init())
