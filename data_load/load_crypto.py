@@ -1,5 +1,5 @@
 import os
-import data_load.helper
+from data_load import helper
 import numpy as np
 
 def fileInfo(pathname="dataset/poloneix_data\\BTC_BTCD.csv-2014-07-01 00_00_00-2016-05-07 00_00_00"):
@@ -60,7 +60,7 @@ class DataPreprocess:
         return dataset
 
 
-    def rl_load_train_test_(self, feature_type=['open', 'low', 'high', 'close'],
+    def rl_load_train_test(self, feature_type=['open', 'low', 'high', 'close'],
                             datatype="bffill_", asset_name="BTC_XEM",
                            path="../../dataset/Poloneix_Preprocessednew", idx = 0,
                             ):
@@ -71,7 +71,7 @@ class DataPreprocess:
             feature_type = [feature_type] # if there is only 1 feature jst convert it into 1 element list
         for feature in feature_type:
             h_train, h_test = self.load_train_test(asset_name=asset_name,
-                                      feature_types=feature,
+                                      feature_type=feature,
                                       rl_env=rl_env, path=path)
             history_train += [h_train]
             history_test += [h_test]
