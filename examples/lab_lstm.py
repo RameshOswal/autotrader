@@ -21,11 +21,11 @@ RB_FACTOR = 3 # REPLAY BUFFER FACTOR
 BPTT=10
 asset_list=ASSET_LIST
 
-MODEL = "CNN" # Set "LSTM" or "CNN"
+MODEL = "LSTM" # Set "LSTM" or "CNN"
 NUM_HID=20
 IDX=0 # Date Index
 TEST_OPTIMIZE_AFTER=10
-LOG_AFTER=1000
+LOG_AFTER=5000
 
 randomize_train=False # Always set to false if replay != 0
 overlapping_train=True
@@ -39,7 +39,7 @@ LR = 1e-4
 
 if __name__ == '__main__':
 
-    batch_gen = Batchifier(data_path=DATA_PATH, bsz=1, bptt=BPTT, idx=IDX,
+    batch_gen = Batchifier(data_path=DATA_PATH, bsz=BSZ, bptt=BPTT, idx=IDX,
                            asset_list=ASSETS, randomize_train=randomize_train,
                            overlapping_train=overlapping_train)
 
@@ -63,23 +63,22 @@ if __name__ == '__main__':
 
             batch_losses = 0.0
             for bTrainX, bTrainY in batch_gen.load_train():
-                if buffer.size < buffer.max_size:
-                    buffer.add(state=bTrainX, action=bTrainY)
-                    continue
-                else:
-                    buffer.add(state=bTrainX, action=bTrainY)
-                    state, reward, action = buffer.get_batch(bsz=BSZ)
-                    _, loss = sess.run([model.optimize, model.loss], feed_dict={
-                        model.data: state, model.target: action
-                    })
-                    losses.append(loss)
+                # if buffer.size < buffer.max_size:
+                #     buffer.add(state=bTrainX, action=bTrainY)
+                #     continue
+                # else:
+                #     buffer.add(state=bTrainX, action=bTrainY)
+                #     state, reward, action = buffer.get_batch(bsz=BSZ)
+                _, loss = sess.run([model.optimize, model.loss], feed_dict={
+                    model.data: bTrainX, model.target: bTrainY
+                })
+                losses.append(loss)
 
-                if len(losses) % LOG_AFTER == 0:
-                    print("Loss after Mini Batch {} Epoch {} = {}".format(len(losses)/LOG_AFTER, epoch, batch_losses / LOG_AFTER))
-                    batch_losses = 0.0
-                else:
-                    batch_losses += loss
-
+                # if len(losses) % LOG_AFTER == 0:
+                #     print("Loss after Mini Batch {} Epoch {} = {}".format(len(losses)/LOG_AFTER, epoch, batch_losses / LOG_AFTER))
+                #     batch_losses = 0.0
+                # else:
+                #     batch_losses += loss
 
             print("Epoch {} Average Train Loss: {}, validating...".format(epoch, sum(losses)/len(losses)))
             losses = []
@@ -97,11 +96,11 @@ if __name__ == '__main__':
                 #     buffer.add(state=bEvalX, action=bEvalY)
                 pred_allocations = sess.run(model.predict_portfolio_allocation,
                                             feed_dict={
-                                                model.data: np.expand_dims(bEvalX, axis=0)
+                                                model.data: bEvalX
                                             })
-                assert np.expand_dims(bEvalY, axis=0).shape == pred_allocations.shape, "{} and {}".format(bEvalY.shape, pred_allocations.shape)
+                assert bEvalY[:, -1, :].shape == pred_allocations.shape, "{} and {}".format(bEvalY.shape, pred_allocations.shape)
 
-                price_change_vec.append(np.expand_dims(bEvalY, axis=0))
+                price_change_vec.append(bEvalY[:, -1, :])
                 allocation_wts.append(pred_allocations)
 
             #         if (idx + 1) % TEST_OPTIMIZE_AFTER == 0:
@@ -117,7 +116,7 @@ if __name__ == '__main__':
             true_change_vec = np.concatenate(price_change_vec)
             allocation_wts = np.concatenate(allocation_wts)
 
-            random_alloc_wts = softmax(np.random.random(allocation_wts.shape))
+            # random_alloc_wts = softmax(np.random.random(allocation_wts.shape))
             test_date = "_".join(batch_gen.dp.test_dates[IDX])
             m = get_metrics(dt_range=test_date)
             print("Our Policy:")

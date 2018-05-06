@@ -4,7 +4,7 @@ from glob import glob
 import pandas as pd
 import os
 import  numpy as np
-import helper
+# import helper
 
 class DataPreprocess:
     def __init__(self, input_folder_name='../../dataset/stock_data',

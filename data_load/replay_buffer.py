@@ -47,5 +47,7 @@ class ReplayBuffer:
         rewards = None if self.rewards == False else np.stack([x[1] for x in elems], axis=0)
         actions = np.stack([x[2] for x in elems], axis=0)
 
+        # for x in range(bsz): self.pool.popleft()
+
         # print(states.shape, rewards, actions.shape)
         return states, rewards, actions

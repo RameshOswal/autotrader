@@ -32,7 +32,7 @@ class CNNModel:
         self._lr = lr
         # self._gs = tf.train.create_global_step()
         self.tf_init = tf.global_variables_initializer
-        with tf.variable_scope(self._scope_prefix+self._scope_prefix+"inputs"):
+        with tf.variable_scope(self._scope_prefix+"inputs"):
             self.data = tf.placeholder(tf.float32, [None, self._bptt, self._num_features, self._num_assets])
             self.target =  tf.placeholder(tf.float32, [None, self._num_assets + 1])
 
@@ -47,7 +47,7 @@ class CNNModel:
         self.optimize
         self.predict_portfolio_allocation
 
-        self.train_vars = tf.trainable_variables()
+        # self.train_vars = tf.trainable_variables()
 
     def build_model(self):
         self._optimizer = tf.train.AdamOptimizer(learning_rate=self._lr)
@@ -73,6 +73,7 @@ class CNNModel:
 
             net = tf.nn.relu(self.conv_layers[0](net))
             net = tf.nn.relu(self.conv_layers[1](net))
+
             net = tf.squeeze(net, axis=1)
 
         with tf.variable_scope(self._scope_prefix+"Asset_Projection", reuse=tf.AUTO_REUSE):
