@@ -13,10 +13,9 @@ class ReplayBuffer:
 
     def add(self, state=None, reward=None, action=None):
         """
-        :param vars: list of elements whose first dimensions are EQUAL. [states, rewards, actions, ...]
-            :param state (X): bsz X bptt X num_feats * num_assets
-            :param reward (y): bsz
-            :param action (weights): bsz X num_assets
+        :param state (X): bsz X bptt X num_feats * num_assets
+        :param reward (y): bsz
+        :param action (weights): bsz X num_assets
         """
         # assert len(state) == len(reward) and len(reward) == len(action), "Dimension Mismatch (REPLAY BUFFER)"
 
@@ -27,7 +26,10 @@ class ReplayBuffer:
             self.pool.popleft()
             self.pool.append((state, reward, action))
 
+<<<<<<< Updated upstream
         # assert len(self.pool) == self.size, "Error in Adding Elements to Buffer! Sizes = {} and {}".format(len(self.pool), self.size)
+=======
+>>>>>>> Stashed changes
 
     def clear(self):
         self.pool = deque()
@@ -39,6 +41,7 @@ class ReplayBuffer:
         :return: list of vars [states, rewards, actions, ...]
         """
         np.random.shuffle(self.ids)
+<<<<<<< Updated upstream
 
         elems = [self.pool[x] for x in self.ids[:bsz]]
 
@@ -51,3 +54,15 @@ class ReplayBuffer:
 
         # print(states.shape, rewards, actions.shape)
         return states, rewards, actions
+=======
+
+        elems = [self.pool[x] for x in self.ids[:bsz]]
+
+        # print(elems[0])
+        states = np.concatenate([x[0] for x in elems], axis=0)
+        rewards = None if self.rewards == False else np.concatenate([x[1] for x in elems], axis=0)
+        actions = np.concatenate([x[2] for x in elems], axis=0)
+
+        # print(states.shape, rewards, actions.shape)
+        return states, rewards, actions
+>>>>>>> Stashed changes
