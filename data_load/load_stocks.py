@@ -4,7 +4,7 @@ from glob import glob
 import pandas as pd
 import os
 import  numpy as np
-import data_load.helper
+from data_load import helper
 
 class DataPreprocess:
     def __init__(self, input_folder_name='../../dataset/stock_data',
@@ -51,6 +51,23 @@ class DataPreprocess:
             path = os.path.join(self.output_folder_name, self.processed_file_name)
         self.dataset = pd.read_csv(path)
 
+        
+    def rl_load_train_test(self, feature_type=['OPEN'], asset_name=["FB"], path="", train_test_ratio=0.8):
+        rl_env = True
+        history_train = []
+        history_test = []
+        if type(feature_type) == str:
+            feature_type = [feature_type] # if there is only 1 feature jst convert it into 1 element list
+        for feature in feature_type:
+            h_train, h_test = self.load_train_test(asset_name=asset_name,
+                                      feature_type=feature, train_test_ratio=train_test_ratio,
+                                      rl_env=rl_env, path=path)
+            history_train += [h_train]
+            history_test += [h_test]
+        history_train = np.concatenate(history_train, axis=-1)
+        history_test = np.concatenate(history_test, axis=-1)
+        return history_train, history_test
+    
     def load_train_test(self, feature_type='OPEN', asset_name="FB", path="", train_test_ratio=0.8, rl_env=False):
         """
 
