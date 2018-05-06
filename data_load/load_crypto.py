@@ -1,6 +1,6 @@
 import os
-# from literals import *
-import helper
+import data_load.helper
+import numpy as np
 
 def fileInfo(pathname="dataset/poloneix_data\\BTC_BTCD.csv-2014-07-01 00_00_00-2016-05-07 00_00_00"):
     basename = os.path.basename(pathname)
@@ -58,6 +58,26 @@ class DataPreprocess:
         # if len(file_name_list) != 0:
             # print("******************* Following files were found to be present and loaded in dataset:" + "\n\t".join(file_name_list))
         return dataset
+
+
+    def rl_load_train_test_(self, feature_type=['open', 'low', 'high', 'close'],
+                            datatype="bffill_", asset_name="BTC_XEM",
+                           path="../../dataset/Poloneix_Preprocessednew", idx = 0,
+                            ):
+        rl_env = True
+        history_train = []
+        history_test = []
+        if type(feature_type) == str:
+            feature_type = [feature_type] # if there is only 1 feature jst convert it into 1 element list
+        for feature in feature_type:
+            h_train, h_test = self.load_train_test(asset_name=asset_name,
+                                      feature_types=feature,
+                                      rl_env=rl_env, path=path)
+            history_train += [h_train]
+            history_test += [h_test]
+        history_train = np.concatenate(history_train, axis=-1)
+        history_test = np.concatenate(history_test, axis=-1)
+        return history_train, history_test
 
 
     def load_train_test(self, feature_type='open', datatype="bffill_",
