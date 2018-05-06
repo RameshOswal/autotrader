@@ -22,8 +22,8 @@ class DDPGActor:
 
     def __init__(self, num_hid=20, clip_norm=0.25,
                  num_features=3, num_assets=9,
-                 bptt=5, lr=0.001, bsz=12,
-                 num_dense_units=64, mix_factor=0.75):
+                 bptt=5, lr=0.001, num_dense_units=64,
+                 mix_factor=0.75):
         self.BASE_SCOPE = "Actor"
         self.TRAIN_SCOPE = "{}Network".format(self.BASE_SCOPE)
         self.TARGET_SCOPE = "{}TargetNetwork".format(self.BASE_SCOPE)
@@ -32,8 +32,6 @@ class DDPGActor:
         self._num_features = num_features
         self._num_assets = num_assets
         self._bptt = bptt
-        self._is_training = False
-        self._bsz = bsz
         self._lr = lr
         self._num_dense_units = num_dense_units
         self._mix_factor = mix_factor
@@ -88,7 +86,7 @@ class DDPGActor:
             train_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.TRAIN_SCOPE)
             target_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.TARGET_SCOPE)
             return [target_params[i].assign(tf.multiply(train_params[i], self._mix_factor) +
-                                            tf.multiply(target_params[i], self._mix_factor))
+                                            tf.multiply(target_params[i], (1 - self._mix_factor)))
                     for i in range(len(target_params))]
 
     def predict_allocation(self, sess, market_state):
@@ -120,8 +118,8 @@ class DDPGCritic:
 
     def __init__(self, num_hid=20, clip_norm=0.25,
                  num_features=3, num_assets=9,
-                 bptt=5, lr=0.001, bsz=12,
-                 mix_factor=0.75, num_dense_units=64):
+                 bptt=5, lr=0.001, mix_factor=0.75,
+                 num_dense_units=64):
         self.BASE_SCOPE = "Critic"
         self.TRAIN_SCOPE = "{}Network".format(self.BASE_SCOPE)
         self.TARGET_SCOPE = "{}TargetNetwork".format(self.BASE_SCOPE)
@@ -131,7 +129,6 @@ class DDPGCritic:
         self._num_assets = num_assets
         self._bptt = bptt
         self._is_training = False
-        self._bsz = bsz
         self._lr = lr
         self._mix_factor = mix_factor
         self._num_dense_units = num_dense_units
@@ -193,7 +190,7 @@ class DDPGCritic:
             train_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.TRAIN_SCOPE)
             target_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self.TARGET_SCOPE)
             return [target_params[i].assign(tf.multiply(train_params[i], self._mix_factor) +
-                                            tf.multiply(target_params[i], self._mix_factor))
+                                            tf.multiply(target_params[i], (1 - self._mix_factor)))
                     for i in range(len(target_params))]
 
     def optimize(self, sess, market_state, allocation, reward):

@@ -2,7 +2,6 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-import data_load.load_stocks as stocks
 from data_load.replay_buffer import ReplayBuffer
 from data_load.batchifier import Batchifier
 from models.cnn_model import CNNModel, tf
@@ -24,10 +23,13 @@ INIT_PV=1000
 NUM_HID=20
 ASSETS = ASSET_LIST
 LR = 1e-4
+LOG_MINI_BATCH = 5000
 randomize_train=False
 overlapping_train=True
 RB_FACTOR=10
 replay=BSZ*RB_FACTOR
+GAMMA = 0.9
+MIX_FACTOR = 0.9
 
 if __name__ == '__main__':
 
