@@ -17,86 +17,102 @@ from sklearn.utils.extmath import softmax
 
 DATA_PATH = "../dataset/Poloneix_Preprocessednew"
 BSZ=32
+RB_FACTOR = 3 # REPLAY BUFFER FACTOR
 BPTT=10
 asset_list=ASSET_LIST
-randomize_train=True # Always set to false if replay != 0
-replay=0
+
+MODEL = "CNN" # Set "LSTM" or "CNN"
+NUM_HID=20
+IDX=0 # Date Index
+TEST_OPTIMIZE_AFTER=10
+LOG_AFTER=1000
+
+randomize_train=False # Always set to false if replay != 0
 overlapping_train=True
-IDX=0
+
+replay=BSZ*RB_FACTOR
 NUM_EPOCHS = 100
 INIT_PV=1000
-NUM_HID=20
 ASSETS = ASSET_LIST
 LR = 1e-4
-MODEL = "CNN" # Set "LSTM" or "CNN"
 
 
 if __name__ == '__main__':
 
-    batch_gen = Batchifier(data_path=DATA_PATH, bsz=BSZ, bptt=BPTT, idx=IDX,
+    batch_gen = Batchifier(data_path=DATA_PATH, bsz=1, bptt=BPTT, idx=IDX,
                            asset_list=ASSETS, randomize_train=randomize_train,
                            overlapping_train=overlapping_train)
 
-    model = LSTMModel(num_hid=NUM_HID, bptt=BPTT, num_assets=len(asset_list), lr=LR, bsz=BSZ, clip_norm=5.0)
-    if MODEL == "CNN":
-        model = CNNModel(num_hid=NUM_HID, bptt=BPTT, num_assets=len(asset_list), lr=LR, bsz=BSZ, clip_norm=5.0)
+    if MODEL == "LSTM":
+        model = LSTMModel(num_hid=NUM_HID, bptt=BPTT, num_assets=len(asset_list), lr=LR,
+                            scope_prefix="model", clip_norm=5.0)
+        # testModel = LSTMModel(num_hid=NUM_HID, bptt=BPTT, num_assets=len(asset_list), lr=LR,
+        #                     scope_prefix="testModel", clip_norm=5.0)
+    elif MODEL == "CNN":
+        model = CNNModel(num_hid=NUM_HID, bptt=BPTT, num_assets=len(asset_list), lr=LR,
+                          scope_prefix="model", clip_norm=5.0)
+        # testModel = CNNModel(num_hid=NUM_HID, bptt=BPTT, num_assets=len(asset_list), lr=LR,
+        #                   scope_prefix="testModel", clip_norm=5.0)
 
     buffer = ReplayBuffer(buffer_size=replay)
+
     with tf.Session() as sess:
         sess.run(model.tf_init())
         losses = []
         for epoch in range(1,NUM_EPOCHS + 1):
-            for bTrainX, bTrainY in batch_gen.load_train():
-                if replay == 0:
-                    _, loss = sess.run([model.optimize, model.loss], feed_dict={
-                        model.data: bTrainX, model.target: bTrainY
-                    })
-                else:
-                    if buffer.size < buffer.max_size:
-                        _, loss = sess.run([model.optimize, model.loss], feed_dict={
-                            model.data: bTrainX, model.target: bTrainY
-                        })
-                        buffer.add([bTrainX, bTrainY], bsz=len(bTrainX))
-                    else:
-                        vars = buffer.get_batch(bsz=BSZ)
-                        _, loss = sess.run([model.optimize, model.loss], feed_dict={
-                            model.data: vars[0], model.target: vars[1]
-                        })
 
-                losses.append(loss)
+            batch_losses = 0.0
+            for bTrainX, bTrainY in batch_gen.load_train():
+                if buffer.size < buffer.max_size:
+                    buffer.add(state=bTrainX, action=bTrainY)
+                    continue
+                else:
+                    buffer.add(state=bTrainX, action=bTrainY)
+                    state, reward, action = buffer.get_batch(bsz=BSZ)
+                    _, loss = sess.run([model.optimize, model.loss], feed_dict={
+                        model.data: state, model.target: action
+                    })
+                    losses.append(loss)
+
+                if len(losses) % LOG_AFTER == 0:
+                    print("Loss after Mini Batch {} Epoch {} = {}".format(len(losses)/LOG_AFTER, epoch, batch_losses / LOG_AFTER))
+                    batch_losses = 0.0
+                else:
+                    batch_losses += loss
+
+
             print("Epoch {} Average Train Loss: {}, validating...".format(epoch, sum(losses)/len(losses)))
             losses = []
             allocation_wts = []
             price_change_vec = []
-            for bEvalX, bEvalY in batch_gen.load_test():
-                # if replay == 0:
+
+            # for var_idx in range(len(testModel.train_vars)//2): testModel.train_vars[var_idx + len(testModel.train_vars)//2].assign(testModel.train_vars[var_idx])
+
+            # testLoss = []
+            for idx, (bEvalX, bEvalY) in enumerate(batch_gen.load_test()):
+                # if buffer.size < buffer.max_size:
+                #     buffer.add(state=bEvalX, action=bEvalY)
+                #     continue
+                # else:
+                #     buffer.add(state=bEvalX, action=bEvalY)
                 pred_allocations = sess.run(model.predict_portfolio_allocation,
                                             feed_dict={
-                                                model.data: bEvalX
+                                                model.data: np.expand_dims(bEvalX, axis=0)
                                             })
-                assert bEvalY.shape == pred_allocations.shape
-                price_change_vec.append(bEvalY)
+                assert np.expand_dims(bEvalY, axis=0).shape == pred_allocations.shape, "{} and {}".format(bEvalY.shape, pred_allocations.shape)
+
+                price_change_vec.append(np.expand_dims(bEvalY, axis=0))
                 allocation_wts.append(pred_allocations)
 
-                # else:
-                #     if buffer.size < buffer.max_size:
-                #         pred_allocations = sess.run(model.predict_portfolio_allocation,
-                #                                     feed_dict={
-                #                                         model.data: bEvalX
-                #                                     })
-                #         assert bEvalY.shape == pred_allocations.shape
-                #         price_change_vec.append(bEvalY)
-                #         allocation_wts.append(pred_allocations)
-                #         buffer.add([bEvalX, bEvalY], bsz=len(bEvalX))
-                #     else:
-                #         vars = buffer.get_batch(bsz=BSZ)
-                #         pred_allocations = sess.run(model.predict_portfolio_allocation,
-                #                                     feed_dict={
-                #                                         model.data: vars[0]
-                #                                     })
-                #         assert bEvalY.shape == pred_allocations.shape
-                #         price_change_vec.append(vars[1])
-                #         allocation_wts.append(pred_allocations)
+            #         if (idx + 1) % TEST_OPTIMIZE_AFTER == 0:
+            #             state, reward, action = buffer.get_batch(bsz=BSZ)
+            #             _, tloss = sess.run([testModel.optimize, testModel.loss],
+            #                                         feed_dict={
+            #                                             testModel.data: state,
+            #                                             testModel.target: action
+            #                                         })
+            #             testLoss.append(tloss)
+            # print("Epoch {} Average Test Loss: {}, ".format(epoch, sum(testLoss)/len(testLoss)))
 
             true_change_vec = np.concatenate(price_change_vec)
             allocation_wts = np.concatenate(allocation_wts)
