@@ -32,7 +32,7 @@ class LSTMModel:
         self._scope_prefix = scope_prefix
         self._gs = tf.train.create_global_step()
         self.tf_init = tf.global_variables_initializer
-        with tf.variable_scope(self._scope_prefix+"inputs"):
+        with tf.variable_scope(self._scope_prefix+"inputs", reuse=tf.AUTO_REUSE):
             self.data = tf.placeholder(tf.float32, [None, self._bptt, self._num_features, self._num_assets])
             self.target =  tf.placeholder(tf.float32, [None, self._bptt, self._num_assets + 1])
 
@@ -43,7 +43,7 @@ class LSTMModel:
         self.optimize
         self.predict_portfolio_allocation
 
-        # self.train_vars = tf.trainable_variables()
+        self.train_vars = tf.trainable_variables()
 
 
     def build_model(self):
@@ -56,12 +56,12 @@ class LSTMModel:
     def logits(self):
         net = self.data
         shape = net.get_shape().as_list()
-        with tf.variable_scope(self._scope_prefix+"LSTM_Cell"):
+        with tf.variable_scope(self._scope_prefix+"LSTM_Cell", reuse=tf.AUTO_REUSE):
             # bsz X bptt X (num_feats * num_assets)
             net = tf.reshape(net, [-1, shape[1], shape[2] * shape[3]])
             net, _ = tf.nn.bidirectional_dynamic_rnn(self._cell, self._cell, net, dtype=tf.float32)
             net = tf.concat(net, axis=2)
-        with tf.variable_scope(self._scope_prefix+"Asset_Projection"):
+        with tf.variable_scope(self._scope_prefix+"Asset_Projection", reuse=tf.AUTO_REUSE):
             net = tf.reshape(net, [-1, 2 * self._num_hid])
             net = self._asset_wt_projection[0](net)
             net = self._asset_wt_projection[1](net)
@@ -71,7 +71,7 @@ class LSTMModel:
 
     @lazy_property
     def loss(self):
-        with tf.variable_scope(self._scope_prefix+"loss_op"):
+        with tf.variable_scope(self._scope_prefix+"loss_op", reuse=tf.AUTO_REUSE):
             optimal_action = tf.argmax(self.target, axis = 2)
             predicted_action = self.logits
             log_probs = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=predicted_action,
@@ -81,7 +81,7 @@ class LSTMModel:
 
     @lazy_property
     def optimize(self):
-        with tf.variable_scope(self._scope_prefix+"optimize_op"):
+        with tf.variable_scope(self._scope_prefix+"optimize_op", reuse=tf.AUTO_REUSE):
             params = tf.trainable_variables()
             grads = tf.gradients(self.loss, params)
             grads, grad_norm = tf.clip_by_global_norm(grads, self._clip_norm)
@@ -89,5 +89,5 @@ class LSTMModel:
 
     @lazy_property
     def predict_portfolio_allocation(self):
-        with tf.variable_scope(self._scope_prefix+"portfolio_wt_op"):
+        with tf.variable_scope(self._scope_prefix+"portfolio_wt_op", reuse=tf.AUTO_REUSE):
             return tf.nn.softmax(self.logits[:, -1, :])

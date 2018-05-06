@@ -117,10 +117,9 @@ class Batchifier:
 
 
             if is_test:
-                yield X, y
+                yield np.squeeze(X, axis=0), np.squeeze(y, axis=0)
             else:
-                yield X, y
-
+                yield np.squeeze(X, axis=0), np.squeeze(y, axis=0)
 
     def loader(self, name, asset_list = ASSET_LIST, idx = 0):
         """
@@ -161,8 +160,8 @@ def test_load_crypto():
                            )
     return batch_obj
 
-if __name__ == "__main__":
-    # batch_obj = test_load_stocks()
-    batch_obj = test_load_crypto()
-    for x, y in batch_obj.load_batch(overlapping_batches=True, randomize_batches=False, is_test=False):
-        print(x.shape, y.shape)
+# if __name__ == "__main__":
+#     # batch_obj = test_load_stocks()
+#     batch_obj = test_load_crypto()
+#     for x, y in batch_obj.load_batch(overlapping_batches=True, randomize_batches=False, is_test=False):
+#         print(x.shape, y.shape)
