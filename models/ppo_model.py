@@ -52,9 +52,9 @@ class PPONetwork:
         self._old_scp_name = "{}_OLD".format(tag)
         self._tmp_scp_name = "{}_TEMP".format(tag)
 
-        self._new_policy_op, self._new_value_op, self._new_dist_op = self.build_ac_network(self._new_scp_name, self._shared_layers)
-        self._old_policy_op, self._old_value_op, self._old_dist_op = self.build_ac_network(self._old_scp_name, self._shared_layers)
-        self._tmp_policy_op, self._tmp_value_op, self._tmp_dist_op = self.build_ac_network(self._tmp_scp_name, self._shared_layers)
+        self._new_policy_op, self._new_value_op = self.build_ac_network(self._new_scp_name, self._shared_layers)
+        self._old_policy_op, self._old_value_op = self.build_ac_network(self._old_scp_name, self._shared_layers)
+        self._tmp_policy_op, self._tmp_value_op = self.build_ac_network(self._tmp_scp_name, self._shared_layers)
 
 
         self.__get_loss_op
@@ -87,41 +87,42 @@ class PPONetwork:
                                       name = "hid_{}".format(idx))
 
         with tf.variable_scope(pre_scope + "_actor"):
-            # actor_net = tf.layers.dense(net, units=self._num_assets + 1, activation=None)
-            # policy = tf.nn.softmax(actor_net, axis = -1)
+            actor_net = tf.layers.dense(net, units=self._num_dense_units, activation=None)
+            actor_net = tf.layers.dense(actor_net, units=self._num_assets + 1, activation=None)
+            policy = tf.nn.softmax(actor_net, axis = -1)
 
             # Produce 2 networks - Sample from them
-            actor_net1 = tf.layers.dense(net, units=self._num_assets + 1, activation=None)
-            actor_net1 = tf.nn.tanh(actor_net1 + self._delta)
-
-            actor_net2 = tf.layers.dense(net, units=self._num_assets + 1, activation=None)
-            actor_net2 = tf.nn.softplus(actor_net2 + self._delta)
-
-            # Skeptical!
-            dist = tf.distributions.Normal(actor_net1, actor_net2)
-            policy = dist.sample()
+            # actor_net1 = tf.layers.dense(net, units=self._num_assets + 1, activation=None)
+            # actor_net1 = tf.nn.tanh(actor_net1 + self._delta)
+            #
+            # actor_net2 = tf.layers.dense(net, units=self._num_assets + 1, activation=None)
+            # actor_net2 = tf.nn.softplus(actor_net2 + self._delta)
+            #
+            # # Skeptical!
+            # dist = tf.distributions.Normal(actor_net1, actor_net2)
+            # policy = dist.sample()
 
         with tf.variable_scope(pre_scope + "_critic"):
             value = tf.layers.dense(net, units=1, activation=None)
 
-        return policy, value, dist
+        return policy, value
 
     @lazy_property
     def __get_loss_op(self, gamma=1.0, epsilon=0.2, beta=0.01, scope='ppo',
                     reuse=None):
         with tf.variable_scope(scope, reuse=reuse):
-            cur_policy = self._new_dist_op.log_prob(self.actor_t + self._delta)
-            old_policy = self._old_dist_op.log_prob(self.actor_t + self._delta)
-            ratio = tf.exp(cur_policy - old_policy)
+            cur_policy = self._new_policy_op
+            old_policy = self._old_policy_op
+            ratio = cur_policy / old_policy
             clipped_ratio = tf.clip_by_value(ratio, 1.0 - epsilon, 1.0 + epsilon)
 
             with tf.variable_scope("loss"):
                 clip_loss = -tf.reduce_mean(tf.minimum(ratio, clipped_ratio) * self.advantage_t)
                 value_loss = tf.reduce_mean(tf.square(self._new_value_op - self.value_t))
-                entropy_loss = tf.reduce_mean(self._new_dist_op.entropy())
-                penalty = - beta * entropy_loss
+                # entropy_loss = tf.reduce_mean(self._new_dist_op.entropy())
+                # penalty = - beta * entropy_loss
 
-            return clip_loss + value_loss + penalty, tf.reduce_mean(clipped_ratio)
+            return clip_loss + value_loss, tf.reduce_mean(clipped_ratio)
 
     @lazy_property
     def __optimize_op(self):
@@ -156,7 +157,7 @@ class PPONetwork:
         })
 
     def get_softmax_policy(self, sess, state, is_train):
-        return sess.run(tf.nn.softmax(self._new_policy_op), {
+        return sess.run(self._new_policy_op, {
             self._market_state: state, self._is_training: is_train
         })
     # def get_ratio_and_loss(self, sess, state, actions, values, advantage):
