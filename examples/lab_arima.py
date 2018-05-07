@@ -26,4 +26,4 @@ if __name__=='__main__':
         true_change_cash = np.ones((len(true_change), true_change.shape[1] + 1))
         true_change_cash[:,1:] = true_change
         m = get_metrics(dt_range = test_date)
-        m.apv_multiple_asset(true_change_cash, weights, get_graph=True, pv_0=INIT_PV)
+        m.apv_multiple_asset(true_change_cash, weights, get_graph=True, pv_0=INIT_PV, tag=idx)

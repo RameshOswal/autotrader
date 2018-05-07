@@ -60,4 +60,4 @@ if __name__ == '__main__':
             test_date = "_".join(batch_gen.dp.test_dates[IDX])
             m = get_metrics(dt_range=test_date)
             print("Our Policy:")
-            m.apv_multiple_asset(true_change_vec, allocation_wts, get_graph=True, pv_0=INIT_PV)
+            m.apv_multiple_asset(true_change_vec, allocation_wts, get_graph=True, pv_0=INIT_PV, tag="epoch_{}".format(epoch))

@@ -58,7 +58,7 @@ class get_metrics:
             else: drawdown_lst.append( (max_val - pv_vals[idx]) / max_val)
         return max(drawdown_lst)
 
-    def apv_multiple_asset(self, rp_vector, weights, pv_0 = 1, get_graph = False):
+    def apv_multiple_asset(self, rp_vector, weights, pv_0 = 1, get_graph = False, tag=""):
         """
         :param rp_vector: time_steps X num_assets
         :param weights: time_steps X num_assets
@@ -90,7 +90,8 @@ class get_metrics:
             self.graph_output(sharpe_ratio, "Sharpe Ratio")
 
         print("MDD = {}, fAPV = {}".format(mdd, portfolio_val))
-
+        print("Saving allocation weights....")
+        np.save("allocation_wts_{}_{}.npy".format(portfolio_val, tag), weights)
         return mdd, portfolio_val
 
     def sr_vals_multiple_asset(self, rp, weights):
