@@ -85,10 +85,10 @@ if __name__ == '__main__':
             price_change_vec = []
             for bEvalX, bEvalYFat in batch_gen.load_test():
                 bEvalY = bEvalYFat[:,-1,:]
-                actor_action_test, critic_value_test = agent.act_and_fetch(sess, last_state, last_action, last_value, actor_rewards, bEvalX, 0)
+                actor_action_test = agent.get_allocations(sess, bEvalX)
                 assert bEvalY.shape == actor_action_test.shape
                 price_change_vec.append(bEvalY)
-                allocation_wts.append(tf.nn.softmax(actor_action_test))
+                allocation_wts.append(actor_action_test)
 
             true_change_vec = np.concatenate(price_change_vec)
             allocation_wts = np.concatenate(allocation_wts)

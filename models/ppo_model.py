@@ -140,6 +140,10 @@ class PPONetwork:
             self.value_t: value, self.advantage_t: advantage
         })
 
+    def get_softmax_policy(self, sess, state):
+        return sess.run(tf.nn.softmax(self._new_policy_op), {
+            self._market_state: state
+        })
     # def get_ratio_and_loss(self, sess, state, actions, values, advantage):
     #     return sess.run(self.__get_loss_op, {
     #         self._market_state: state, self.actor_t: actions,
@@ -188,7 +192,8 @@ class PPOAgent:
         self._network.update_old_params_op(sess)
         return loss_ratio[0], loss_ratio[1]
 
-
+    def get_allocations(self, sess, state):
+        return self._network.get_softmax_policy(sess, state)
 
     def _reset_trajectories(self):
         self.states = []
