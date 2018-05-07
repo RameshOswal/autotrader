@@ -47,6 +47,10 @@ class DDPGActor:
                                                             self._num_features, self._num_assets])
             self.__allocation_gradients = tf.placeholder(tf.float32, [None, self._num_assets + 1])
             self.__true_reward = tf.placeholder(tf.float32, [None])
+            self._is_training = tf.placeholder(tf.bool, None)
+        self.n_channels = [20, 20]
+        self.kernel_sizes = [8, 8]
+        self.strides = [1, 1]
         self.__pred_allocation_op = self.build_network(self.TRAIN_SCOPE)
         self.__pred_allocation_target_op = self.build_network(self.TARGET_SCOPE)
         self.__optimize_op
@@ -56,20 +60,27 @@ class DDPGActor:
         # Head scope - used to differentiate between Actor/ActorTarget
         with tf.variable_scope(scope_name):
             net = self.__market_state
-            with tf.variable_scope("LSTM_Cell"):
-                shape = net.get_shape().as_list()
+            shape = net.get_shape().as_list()
+            with tf.variable_scope("ConvLayers"):
+                # bsz X bptt X (num_feats * num_assets)
                 net = tf.reshape(net, [-1, shape[1], shape[2] * shape[3]])
-                cell = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
-                net, _ = tf.nn.bidirectional_dynamic_rnn(cell, cell, net, dtype=tf.float32)
-                net = tf.concat(net, axis=2)
+                net = tf.expand_dims(net, axis=1)
+                net = tf.layers.conv2d(net, filters=self.n_channels[0], strides=(1, self.strides[0]),
+                                       kernel_size=(1, self.kernel_sizes[0]), padding="SAME")
+                net = self.batch_norm(net, self.n_channels[0], self._is_training)
+                net = tf.layers.conv2d(net, filters=self.n_channels[1], strides=(1, self.strides[1]),
+                                       kernel_size=(1, self.kernel_sizes[1]), padding="SAME")
+                net = self.batch_norm(net, self.n_channels[1], self._is_training)
+                net = tf.squeeze(net, axis=1)
             with tf.variable_scope("Dense_Layers"):
                 shape = net.get_shape().as_list()
                 # [bsz, bptt, feats] -> [bsz, bptt*num_feats]
                 net = tf.reshape(net, [-1, shape[1]*shape[2]])
-                net = tf.layers.dense(net, self._num_dense_units, activation=tf.nn.leaky_relu)
-                net = tf.layers.dense(net, self._num_dense_units, activation=tf.nn.leaky_relu)
+                net = tf.layers.dense(net, self._num_dense_units)
+                net = tf.layers.dense(net, self._num_dense_units)
             with tf.variable_scope("Asset_Projection"):
-                net = tf.layers.dense(net, self._num_assets + 1, kernel_initializer=self._wt_init)
+                net = tf.layers.dense(net, self._num_assets + 1,
+                                      kernel_initializer=self._wt_init)
             return tf.nn.softmax(net, axis=-1)
 
     @lazy_property
@@ -95,20 +106,54 @@ class DDPGActor:
                                             tf.multiply(target_params[i], (1 - self._mix_factor)))
                     for i in range(len(target_params))]
 
+    @staticmethod
+    def batch_norm(x, n_out, phase_train, scope='bn'):
+        """
+        Batch normalization on convolutional maps.
+        Args:
+            x:           Tensor, 4D BHWD input maps
+            n_out:       integer, depth of input maps
+            phase_train: boolean tf.Varialbe, true indicates training phase
+            scope:       string, variable scope
+        Return:
+            normed:      batch-normalized maps
+        """
+        with tf.variable_scope(scope):
+            beta = tf.Variable(tf.constant(0.0, shape=[n_out]),
+                               name='beta', trainable=True)
+            gamma = tf.Variable(tf.constant(1.0, shape=[n_out]),
+                                name='gamma', trainable=True)
+            batch_mean, batch_var = tf.nn.moments(x, [0, 1, 2], name='moments')
+            ema = tf.train.ExponentialMovingAverage(decay=0.5)
+
+            def mean_var_with_update():
+                ema_apply_op = ema.apply([batch_mean, batch_var])
+                with tf.control_dependencies([ema_apply_op]):
+                    return tf.identity(batch_mean), tf.identity(batch_var)
+
+            mean, var = tf.cond(phase_train,
+                                mean_var_with_update,
+                                lambda: (ema.average(batch_mean), ema.average(batch_var)))
+            normed = tf.nn.batch_normalization(x, mean, var, beta, gamma, 1e-3)
+        return normed
+
     def predict_allocation(self, sess, market_state):
         return sess.run(self.__pred_allocation_op, {
-            self.__market_state: market_state
+            self.__market_state: market_state,
+            self._is_training: False
         })
 
     def target_predict_allocation(self, sess, market_state):
         return sess.run(self.__pred_allocation_target_op, {
-            self.__market_state: market_state
+            self.__market_state: market_state,
+            self._is_training: False
         })
 
     def optimize(self, sess, market_state, allocation_grad):
         sess.run(self.__optimize_op, {
             self.__market_state: market_state,
-            self.__allocation_gradients: allocation_grad
+            self.__allocation_gradients: allocation_grad,
+            self._is_training: True
         })
         return self
 
