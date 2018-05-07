@@ -1,5 +1,11 @@
 import tensorflow as tf
 import functools
+import numpy as np
+
+"""
+Inspired by: https://github.com/pemami4911/deep-rl/blob/master/ddpg/ddpg.py
+"""
+
 
 def lazy_property(function):
     attribute = '_cache_' + function.__name__
@@ -217,7 +223,31 @@ class DDPGCritic:
         return sess.run(self.__allocation_gradients, {
             self.__market_state: market_state,
             self.__predicted_allocation: allocation,
-        })
+        })[0]
 
     def update_target_network(self, sess):
         sess.run(self.__update_target_network_op)
+
+
+# Taken from https://github.com/openai/baselines/blob/master/baselines/ddpg/noise.py, which is
+# based on http://math.stackexchange.com/questions/1287634/implementing-ornstein-uhlenbeck-in-matlab
+class OrnsteinUhlenbeckActionNoise:
+    def __init__(self, mu, sigma=0.3, theta=.15, dt=1e-2, x0=None):
+        self.theta = theta
+        self.mu = mu
+        self.sigma = sigma
+        self.dt = dt
+        self.x0 = x0
+        self.reset()
+
+    def __call__(self):
+        x = self.x_prev + self.theta * (self.mu - self.x_prev) * self.dt + \
+                self.sigma * np.sqrt(self.dt) * np.random.normal(size=self.mu.shape)
+        self.x_prev = x
+        return x
+
+    def reset(self):
+        self.x_prev = self.x0 if self.x0 is not None else np.zeros_like(self.mu)
+
+    def __repr__(self):
+        return 'OrnsteinUhlenbeckActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
