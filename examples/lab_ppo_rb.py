@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
             for idx, (bTrainX, bTrainY) in enumerate(batch_gen.load_train()):
                 if (idx + 1) % OPTIMIZE_AFTER != 0:
-                    actor_action, critic_value = agent.act_and_fetch(sess, last_state, last_action, last_value, actor_rewards, bTrainX, idx)
+                    actor_action, critic_value = agent.act_and_fetch(sess, last_state, last_action, last_value, actor_rewards, bTrainX, True, idx)
                     last_state, last_action, last_value = bTrainX, actor_action, critic_value
 
                     actor_rewards = np.dot(actor_action.flatten(), bTrainY[:,-1,:].flatten())
@@ -74,7 +74,8 @@ if __name__ == '__main__':
                         loss, ratio = agent.train(sess, state=states[batch:batch+BSZ],
                                     actions=actions[batch:batch + BSZ],
                                     values=values[batch:batch + BSZ],
-                                    advantage=advantage[batch:batch + BSZ]
+                                    advantage=advantage[batch:batch + BSZ],
+                                    is_train=True
                                     )
                         bloss += loss
                     losses.append(bloss/RB_FACTOR)
@@ -83,9 +84,11 @@ if __name__ == '__main__':
             losses = []
             allocation_wts = []
             price_change_vec = []
+
+            batch_gen.bsz = BSZ
             for bEvalX, bEvalYFat in batch_gen.load_test():
                 bEvalY = bEvalYFat[:,-1,:]
-                actor_action_test = agent.get_allocations(sess, bEvalX)
+                actor_action_test = agent.get_allocations(sess, bEvalX, is_train=False)
                 assert bEvalY.shape == actor_action_test.shape
                 price_change_vec.append(bEvalY)
                 allocation_wts.append(actor_action_test)
@@ -98,4 +101,6 @@ if __name__ == '__main__':
             m = get_metrics(dt_range=test_date)
             print("Our Policy:")
             m.apv_multiple_asset(true_change_vec, allocation_wts, get_graph=True, pv_0=INIT_PV)
+
             agent._reset_trajectories()
+            batch_gen.bsz = 1

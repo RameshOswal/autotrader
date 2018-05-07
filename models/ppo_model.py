@@ -26,7 +26,7 @@ class PPONetwork:
         self._num_features = num_features
         self._num_assets = num_assets
         self._bptt = bptt
-        self._is_training = False
+
         self._bsz = bsz
         self._lr = lr
         self._shared_layers = [num_dense_units] * num_layers
@@ -34,8 +34,13 @@ class PPONetwork:
         self._delta = delta
         self._wt_init = tf.initializers.random_uniform(minval=-3e-3, maxval=3e-3)
 
+        self.n_channels = [20, 20]
+        self.kernel_sizes = [8, 8]
+        self.strides = [1, 1]
+
         with tf.variable_scope("Network_Input"):
             self._market_state = tf.placeholder(tf.float32, [None, self._bptt, self._num_features, self._num_assets],name="INPUT")
+            self._is_training = tf.placeholder(tf.bool, None)
             # self.__allocation_gradients = tf.placeholder(tf.float32, [None, self._num_assets + 1])
             # self._true_reward = tf.placeholder(tf.float32, [None,1])
 
@@ -51,6 +56,7 @@ class PPONetwork:
         self._old_policy_op, self._old_value_op, self._old_dist_op = self.build_ac_network(self._old_scp_name, self._shared_layers)
         self._tmp_policy_op, self._tmp_value_op, self._tmp_dist_op = self.build_ac_network(self._tmp_scp_name, self._shared_layers)
 
+
         self.__get_loss_op
         self.__optimize_op
         self.__backup_new_params_op
@@ -61,11 +67,20 @@ class PPONetwork:
         shapes = self._market_state.get_shape().as_list()
         net = tf.reshape(self._market_state, [-1, shapes[1] , shapes[2] * shapes[3]])
         with tf.variable_scope(pre_scope + "_shared"):
-            cell = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
-            net, _ = tf.nn.bidirectional_dynamic_rnn(cell, cell, net, dtype=tf.float32)
-            net = tf.concat(net, axis=2)
+            # cell = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
+            # net, _ = tf.nn.bidirectional_dynamic_rnn(cell, cell, net, dtype=tf.float32)
+            # net = tf.concat(net, axis=2)
+            net = tf.expand_dims(net, axis=1)
+            net = tf.layers.conv2d(net, filters=self.n_channels[0], strides=(1, self.strides[0]),
+                                   kernel_size=(1, self.kernel_sizes[0]), padding="SAME")
+            net = self.batch_norm(net, self.n_channels[0], self._is_training)
+            net = tf.layers.conv2d(net, filters=self.n_channels[1], strides=(1, self.strides[1]),
+                                   kernel_size=(1, self.kernel_sizes[1]), padding="SAME")
+            net = self.batch_norm(net, self.n_channels[1], self._is_training)
+            net = tf.squeeze(net, axis=1)
 
-            net = tf.reshape(net, [-1, 2 * self._num_hid * self._bptt])
+            shape = net.get_shape().as_list()
+            net = tf.reshape(net, [-1, shape[1] * shape[2]])
             for idx, hidden in enumerate(hidden_layers):
                 net = tf.layers.dense(net, units=hidden,
                                       activation=tf.nn.tanh, kernel_initializer=self._wt_init,
@@ -134,21 +149,52 @@ class PPONetwork:
     def update_old_params_op(self, sess):
         return sess.run([self.__update_old_params_op])
 
-    def optimize(self, sess, state, action, value, advantage):
+    def optimize(self, sess, state, action, value, advantage, is_train):
         return sess.run([self.__optimize_op, self.__get_loss_op], {
             self._market_state: state, self.actor_t: action,
-            self.value_t: value, self.advantage_t: advantage
+            self.value_t: value, self.advantage_t: advantage, self._is_training: is_train
         })
 
-    def get_softmax_policy(self, sess, state):
+    def get_softmax_policy(self, sess, state, is_train):
         return sess.run(tf.nn.softmax(self._new_policy_op), {
-            self._market_state: state
+            self._market_state: state, self._is_training: is_train
         })
     # def get_ratio_and_loss(self, sess, state, actions, values, advantage):
     #     return sess.run(self.__get_loss_op, {
     #         self._market_state: state, self.actor_t: actions,
     #         self.value_t: values, self.advantage_t: advantage
     #     })
+
+    @staticmethod
+    def batch_norm(x, n_out, phase_train, scope='bn'):
+        """
+        Batch normalization on convolutional maps.
+        Args:
+            x:           Tensor, 4D BHWD input maps
+            n_out:       integer, depth of input maps
+            phase_train: boolean tf.Varialbe, true indicates training phase
+            scope:       string, variable scope
+        Return:
+            normed:      batch-normalized maps
+        """
+        with tf.variable_scope(scope):
+            beta = tf.Variable(tf.constant(0.0, shape=[n_out]),
+                               name='beta', trainable=True)
+            gamma = tf.Variable(tf.constant(1.0, shape=[n_out]),
+                                name='gamma', trainable=True)
+            batch_mean, batch_var = tf.nn.moments(x, [0, 1, 2], name='moments')
+            ema = tf.train.ExponentialMovingAverage(decay=0.5)
+
+            def mean_var_with_update():
+                ema_apply_op = ema.apply([batch_mean, batch_var])
+                with tf.control_dependencies([ema_apply_op]):
+                    return tf.identity(batch_mean), tf.identity(batch_var)
+
+            mean, var = tf.cond(phase_train,
+                                mean_var_with_update,
+                                lambda: (ema.average(batch_mean), ema.average(batch_var)))
+            normed = tf.nn.batch_normalization(x, mean, var, beta, gamma, 1e-3)
+        return normed
 
 class PPOAgent:
     def __init__(self, bsz, gamma=0.9, lam=0.95, reuse=None,
@@ -171,10 +217,10 @@ class PPOAgent:
                                    num_dense_units=num_dense_units, num_layers=num_layers, delta=delta, tag=tag
                                    )
 
-    def act_and_fetch(self, sess, last_state, last_action, last_value, reward, cur_state, idx):
+    def act_and_fetch(self, sess, last_state, last_action, last_value, reward, cur_state, is_train, idx):
 
         action, value = sess.run([self._network._new_policy_op, self._network._new_value_op],{
-            self._network._market_state : cur_state
+            self._network._market_state : cur_state, self._network._is_training: is_train
         })
         # action, value = action[0], value[0]
         if idx != 0:
@@ -186,14 +232,14 @@ class PPOAgent:
         self.t += 1
         return action, value
 
-    def train(self, sess, state, actions, values, advantage):
+    def train(self, sess, state, actions, values, advantage, is_train):
         self._network.backup_new_params(sess)
-        _, loss_ratio = self._network.optimize(sess, state, actions, values, advantage)
+        _, loss_ratio = self._network.optimize(sess, state, actions, values, advantage, is_train)
         self._network.update_old_params_op(sess)
         return loss_ratio[0], loss_ratio[1]
 
-    def get_allocations(self, sess, state):
-        return self._network.get_softmax_policy(sess, state)
+    def get_allocations(self, sess, state, is_train):
+        return self._network.get_softmax_policy(sess, state, is_train)
 
     def _reset_trajectories(self):
         self.states = []
