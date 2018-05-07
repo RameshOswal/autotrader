@@ -8,7 +8,6 @@ class ReplayBuffer:
         # Pool is a list of tuples (states, reward, action)
         self.pool = deque()
         self.size = 0
-        self.ids = np.arange(start=0, stop=self.max_size)
 
 
     def add(self, state=None, reward=None, action=None):
@@ -35,12 +34,16 @@ class ReplayBuffer:
         :param bsz: batch size
         :return: list of vars [states, rewards, actions, ...]
         """
-        np.random.shuffle(self.ids)
-        elems = [self.pool[x] for x in self.ids[:bsz]]
+        ids = np.arange(0, self.size)
+        np.random.shuffle(ids)
+
+        elems = [self.pool[x] for x in ids[:bsz]]
 
         # print(elems[0])
         states = np.concatenate([x[0] for x in elems], axis=0)
-        rewards = None if self.rewards == False else np.concatenate([x[1] for x in elems], axis=0)
+        rewards = None if self.rewards == False else np.array([x[1] for x in elems])
+        # (bsz, ) -> (bsz, 1)
+        rewards = rewards.reshape((len(rewards), 1))
         actions = np.concatenate([x[2] for x in elems], axis=0)
 
         # print(states.shape, rewards, actions.shape)
