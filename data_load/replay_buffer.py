@@ -41,9 +41,9 @@ class ReplayBuffer:
 
         # print(elems[0])
         states = np.concatenate([x[0] for x in elems], axis=0)
-        rewards = None if self.rewards == False else np.array([x[1] for x in elems])
+        rewards = None if self.rewards == False else np.array([x[1] for x in elems]).reshape(len(elems), 1)
         # (bsz, ) -> (bsz, 1)
-        rewards = rewards.reshape((len(rewards), 1))
+        # rewards = rewards.reshape((len(rewards), 1))
         actions = np.concatenate([x[2] for x in elems], axis=0)
 
         # print(states.shape, rewards, actions.shape)

@@ -40,8 +40,6 @@ if __name__ == '__main__':
                            asset_list=ASSETS, randomize_train=randomize_train,
                            overlapping_train=overlapping_train)
 
-
-
     agent = PPOAgent(bsz=1, clip_norm=CLIP_NORM, num_hid=NUM_HID,
                      num_assets=len(ASSETS), bptt=BPTT, lr=LR)
 
@@ -58,40 +56,65 @@ if __name__ == '__main__':
 
             for idx, (bTrainX, bTrainY) in enumerate(batch_gen.load_train()):
                 if (idx + 1) % OPTIMIZE_AFTER != 0:
-                    actor_action, critic_value = agent.act_and_fetch(sess, last_state, last_action, last_value, actor_rewards, bTrainX, True, idx)
+                    actor_action, critic_value = agent.act_and_fetch(sess, agent._network, last_state, last_action, last_value, actor_rewards, bTrainX, True, idx, mode = "train")
                     last_state, last_action, last_value = bTrainX, actor_action, critic_value
 
                     actor_rewards = np.dot(actor_action.flatten(), bTrainY[:,-1,:].flatten())
-                    # actor_rewards += alloc_reward
                     continue
                 else:
-                    states, actions, values, advantage = agent.get_training_data()
+                    states, actions, values, advantage = agent.get_training_data(reset=True)
                     assert len(states) == len(actions) and len(values) == len(advantage), "Error in setting up"
                     shuffle_idxs = np.arange(0, OPTIMIZE_AFTER - 2)
                     np.random.shuffle(shuffle_idxs)
                     bloss = 0.0
                     for batch in range(0, OPTIMIZE_AFTER - 2, BSZ):
                         loss, ratio = agent.train(sess, state=states[batch:batch+BSZ],
-                                    actions=actions[batch:batch + BSZ],
-                                    values=values[batch:batch + BSZ],
-                                    advantage=advantage[batch:batch + BSZ],
-                                    is_train=True
+                                                    network=agent._network,
+                                                    actions=actions[batch:batch + BSZ],
+                                                    values=values[batch:batch + BSZ],
+                                                    advantage=advantage[batch:batch + BSZ],
+                                                    is_train=True
                                     )
                         bloss += loss
                     losses.append(bloss/RB_FACTOR)
                     # print(losses)
             print("Epoch {} Loss: {}, validating...".format(epoch, np.mean(losses)))
+
+            agent.backup_train_update_test_model(sess)
+
             losses = []
             allocation_wts = []
             price_change_vec = []
 
-            batch_gen.bsz = BSZ
-            for bEvalX, bEvalYFat in batch_gen.load_test():
+            for idx, (bEvalX, bEvalYFat) in enumerate(batch_gen.load_test()):
                 bEvalY = bEvalYFat[:,-1,:]
-                actor_action_test = agent.get_allocations(sess, bEvalX, is_train=False)
-                assert bEvalY.shape == actor_action_test.shape
+                actor_action, critic_value = agent.act_and_fetch(sess, agent._test_network, last_state, last_action,
+                                                                 last_value, actor_rewards, bEvalX, False, 1,
+                                                                 mode="test")
+                last_state, last_action, last_value = bEvalX, actor_action, critic_value
+
+                assert bEvalY.shape == actor_action.shape
                 price_change_vec.append(bEvalY)
-                allocation_wts.append(actor_action_test)
+                allocation_wts.append(actor_action)
+
+                if (idx + 1) % OPTIMIZE_AFTER == 0:
+                    states, actions, values, advantage = agent.get_training_data(reset=True)
+                    assert len(states) == len(actions) and len(values) == len(advantage), "Error in setting up"
+                    shuffle_idxs = np.arange(0, len(states))
+                    np.random.shuffle(shuffle_idxs)
+                    bloss = 0.0
+                    for batch in range(0, len(states), BSZ):
+                        loss, ratio = agent.train(sess, state=states[batch:batch + BSZ],
+                                                  network=agent._test_network,
+                                                  actions=actions[batch:batch + BSZ],
+                                                  values=values[batch:batch + BSZ],
+                                                  advantage=advantage[batch:batch + BSZ],
+                                                  is_train=False
+                                                  )
+                        bloss += loss
+                    losses.append(bloss / RB_FACTOR)
+
+            print("Epoch {} Test Loss: {}, validating...".format(epoch, np.mean(losses)))
 
             true_change_vec = np.concatenate(price_change_vec)
             allocation_wts = np.concatenate(allocation_wts)
@@ -103,4 +126,4 @@ if __name__ == '__main__':
             m.apv_multiple_asset(true_change_vec, allocation_wts, get_graph=True, pv_0=INIT_PV)
 
             agent._reset_trajectories()
-            batch_gen.bsz = 1
+            agent.update_train_from_tmp_model(sess)

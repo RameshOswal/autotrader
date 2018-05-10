@@ -20,7 +20,7 @@ class PPONetwork:
     def __init__(self,num_hid=20, clip_norm=0.25,
                  num_features=3, num_assets=9,
                  bptt=5, lr=3e-4, bsz=12,
-                 num_dense_units=64, num_layers=2, delta=1e-5, tag=0):
+                 num_dense_units=64, num_layers=2, delta=1e-5, tag=""):
         self._num_hid = num_hid
         self._clip_norm = clip_norm
         self._num_features = num_features
@@ -34,8 +34,8 @@ class PPONetwork:
         self._delta = delta
         self._wt_init = tf.initializers.random_uniform(minval=-3e-3, maxval=3e-3)
 
-        self.n_channels = [20, 20]
-        self.kernel_sizes = [8, 8]
+        self.n_channels = [32, 32]
+        self.kernel_sizes = [3, 3]
         self.strides = [1, 1]
 
         with tf.variable_scope("Network_Input"):
@@ -52,9 +52,9 @@ class PPONetwork:
         self._old_scp_name = "{}_OLD".format(tag)
         self._tmp_scp_name = "{}_TEMP".format(tag)
 
-        self._new_policy_op, self._new_value_op = self.build_ac_network(self._new_scp_name, self._shared_layers)
-        self._old_policy_op, self._old_value_op = self.build_ac_network(self._old_scp_name, self._shared_layers)
-        self._tmp_policy_op, self._tmp_value_op = self.build_ac_network(self._tmp_scp_name, self._shared_layers)
+        self._new_policy_op, self._new_value_op, self._new_dist_op = self.build_ac_network(self._new_scp_name, self._shared_layers)
+        self._old_policy_op, self._old_value_op, self._old_dist_op = self.build_ac_network(self._old_scp_name, self._shared_layers)
+        self._tmp_policy_op, self._tmp_value_op, self._tmp_dist_op = self.build_ac_network(self._tmp_scp_name, self._shared_layers)
 
 
         self.__get_loss_op
@@ -67,62 +67,69 @@ class PPONetwork:
         shapes = self._market_state.get_shape().as_list()
         net = tf.reshape(self._market_state, [-1, shapes[1] , shapes[2] * shapes[3]])
         with tf.variable_scope(pre_scope + "_shared"):
-            # cell = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
-            # net, _ = tf.nn.bidirectional_dynamic_rnn(cell, cell, net, dtype=tf.float32)
-            # net = tf.concat(net, axis=2)
-            net = tf.expand_dims(net, axis=1)
-            net = tf.layers.conv2d(net, filters=self.n_channels[0], strides=(1, self.strides[0]),
-                                   kernel_size=(1, self.kernel_sizes[0]), padding="SAME")
-            net = self.batch_norm(net, self.n_channels[0], self._is_training)
-            net = tf.layers.conv2d(net, filters=self.n_channels[1], strides=(1, self.strides[1]),
-                                   kernel_size=(1, self.kernel_sizes[1]), padding="SAME")
-            net = self.batch_norm(net, self.n_channels[1], self._is_training)
-            net = tf.squeeze(net, axis=1)
+            cell = tf.contrib.rnn.LSTMBlockCell(self._num_hid)
+            net, _ = tf.nn.bidirectional_dynamic_rnn(cell, cell, net, dtype=tf.float32)
+            net = tf.concat(net, axis=2)
+            # net = tf.expand_dims(net, axis=1)
+            # net = tf.layers.conv2d(net, filters=self.n_channels[0], strides=(1, self.strides[0]),
+            #                        kernel_size=(1, self.kernel_sizes[0]), padding="SAME")
+            # net = self.batch_norm(net, self.n_channels[0], self._is_training)
+            # net = tf.layers.conv2d(net, filters=self.n_channels[1], strides=(1, self.strides[1]),
+            #                        kernel_size=(1, self.kernel_sizes[1]), padding="SAME")
+            # net = self.batch_norm(net, self.n_channels[1], self._is_training)
+            # net = tf.squeeze(net, axis=1)
 
-            shape = net.get_shape().as_list()
-            net = tf.reshape(net, [-1, shape[1] * shape[2]])
+            # shape = net.get_shape().as_list()
+            net = tf.reshape(net, [-1, 2 * self._num_hid * self._bptt])
             for idx, hidden in enumerate(hidden_layers):
                 net = tf.layers.dense(net, units=hidden,
                                       activation=tf.nn.tanh, kernel_initializer=self._wt_init,
                                       name = "hid_{}".format(idx))
 
         with tf.variable_scope(pre_scope + "_actor"):
-            actor_net = tf.layers.dense(net, units=self._num_dense_units, activation=None)
-            actor_net = tf.layers.dense(actor_net, units=self._num_assets + 1, activation=None)
-            policy = tf.nn.softmax(actor_net, axis = -1)
+            # actor_net = tf.layers.dense(net, units=self._num_dense_units, activation=None)
+            # policy = tf.layers.dense(actor_net, units = self._num_assets + 1, activation=None)
+            # policy = tf.nn.softmax(policy, axis = -1)
+            # actor_net = tf.layers.dense(actor_net, units=self._num_assets + 1, activation=None)
+
+            # policy = tf.squeeze(tf.one_hot(tf.multinomial(actor_net, num_samples = 1), depth=self._num_assets + 1), axis = 1)
+            # policy = tf.to_float(tf.multinomial(actor_net, num_samples = 1))
 
             # Produce 2 networks - Sample from them
-            # actor_net1 = tf.layers.dense(net, units=self._num_assets + 1, activation=None)
-            # actor_net1 = tf.nn.tanh(actor_net1 + self._delta)
-            #
-            # actor_net2 = tf.layers.dense(net, units=self._num_assets + 1, activation=None)
-            # actor_net2 = tf.nn.softplus(actor_net2 + self._delta)
+            actor_net1 = tf.layers.dense(net, units=self._num_assets + 1, activation=None)
+            actor_net1 = tf.nn.tanh(actor_net1 + self._delta)
+
+            actor_net2 = tf.layers.dense(net, units=self._num_assets + 1, activation=None)
+            actor_net2 = tf.nn.softplus(actor_net2 + self._delta)
             #
             # # Skeptical!
-            # dist = tf.distributions.Normal(actor_net1, actor_net2)
-            # policy = dist.sample()
+            dist = tf.distributions.Normal(actor_net1, actor_net2)
+            policy = dist.sample()
 
         with tf.variable_scope(pre_scope + "_critic"):
             value = tf.layers.dense(net, units=1, activation=None)
 
-        return policy, value
+        return policy, value, dist
 
     @lazy_property
     def __get_loss_op(self, gamma=1.0, epsilon=0.2, beta=0.01, scope='ppo',
                     reuse=None):
         with tf.variable_scope(scope, reuse=reuse):
-            cur_policy = self._new_policy_op
-            old_policy = self._old_policy_op
-            ratio = cur_policy / old_policy
+            # cur_policy = self._new_policy_op
+            # old_policy = self._old_policy_op
+            # ratio = cur_policy / old_policy
+            cur_policy = self._new_dist_op.log_prob(self.actor_t + self._delta)
+            old_policy = self._old_dist_op.log_prob(self.actor_t + self._delta)
+            ratio = tf.exp( cur_policy - old_policy)
             clipped_ratio = tf.clip_by_value(ratio, 1.0 - epsilon, 1.0 + epsilon)
 
             with tf.variable_scope("loss"):
                 clip_loss = -tf.reduce_mean(tf.minimum(ratio, clipped_ratio) * self.advantage_t)
                 value_loss = tf.reduce_mean(tf.square(self._new_value_op - self.value_t))
-                # entropy_loss = tf.reduce_mean(self._new_dist_op.entropy())
-                # penalty = - beta * entropy_loss
+                entropy_loss = tf.reduce_mean(self._new_dist_op.entropy())
+                penalty = - beta * entropy_loss
 
-            return clip_loss + value_loss, tf.reduce_mean(clipped_ratio)
+            return clip_loss + value_loss + penalty, tf.reduce_mean(clipped_ratio)
 
     @lazy_property
     def __optimize_op(self):
@@ -144,11 +151,41 @@ class PPONetwork:
         old_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, self._old_scp_name)
         return [old_params[idx].assign(old) for idx, old in enumerate(tmp_parms)]
 
-    def backup_new_params(self, sess):
-        return sess.run([self.__backup_new_params_op])
+    @lazy_property
+    def __update_test_model_op(self):
+        trn_model = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "train")
+        tst_model = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "test")
+        return [tst_model[idx].assign(old) for idx, old in enumerate(trn_model)]
 
-    def update_old_params_op(self, sess):
-        return sess.run([self.__update_old_params_op])
+    @lazy_property
+    def __backup_train_model_op(self):
+        trn_model = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "train")
+        tmp_model = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "tmp")
+        return [tmp_model[idx].assign(old) for idx, old in enumerate(trn_model)]
+
+    @lazy_property
+    def __update_train_model_op(self):
+        tmp_model = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "tmp")
+        trn_model = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "train")
+        return [trn_model[idx].assign(old) for idx, old in enumerate(tmp_model)]
+
+
+    def update_test_model(self, sess):
+        return sess.run(self.__update_test_model_op)
+
+    def backup_train_model(self, sess):
+        return sess.run(self.__backup_train_model_op)
+
+    def update_train_model(self, sess):
+        return sess.run(self.__update_train_model_op)
+
+
+
+    def backup_new_params(self, sess):
+        return sess.run(self.__backup_new_params_op)
+
+    def update_old_params(self, sess):
+        return sess.run(self.__update_old_params_op)
 
     def optimize(self, sess, state, action, value, advantage, is_train):
         return sess.run([self.__optimize_op, self.__get_loss_op], {
@@ -157,14 +194,11 @@ class PPONetwork:
         })
 
     def get_softmax_policy(self, sess, state, is_train):
-        return sess.run(self._new_policy_op, {
+        return sess.run([tf.nn.softmax(self._new_policy_op, axis=-1), self._new_value_op], {
             self._market_state: state, self._is_training: is_train
         })
-    # def get_ratio_and_loss(self, sess, state, actions, values, advantage):
-    #     return sess.run(self.__get_loss_op, {
-    #         self._market_state: state, self.actor_t: actions,
-    #         self.value_t: values, self.advantage_t: advantage
-    #     })
+
+
 
     @staticmethod
     def batch_norm(x, n_out, phase_train, scope='bn'):
@@ -215,14 +249,28 @@ class PPOAgent:
         self._network = PPONetwork(bsz=bsz,num_hid=num_hid, clip_norm=clip_norm,
                                    num_features=num_features, num_assets=num_assets,
                                    bptt=bptt, lr=lr,
-                                   num_dense_units=num_dense_units, num_layers=num_layers, delta=delta, tag=tag
+                                   num_dense_units=num_dense_units, num_layers=num_layers, delta=delta, tag="train"
+                                   )
+        self._test_network = PPONetwork(bsz=bsz,num_hid=num_hid, clip_norm=clip_norm,
+                                   num_features=num_features, num_assets=num_assets,
+                                   bptt=bptt, lr=lr,
+                                   num_dense_units=num_dense_units, num_layers=num_layers, delta=delta, tag="test"
                                    )
 
-    def act_and_fetch(self, sess, last_state, last_action, last_value, reward, cur_state, is_train, idx):
+        self._tmp_network = PPONetwork(bsz=bsz, num_hid=num_hid, clip_norm=clip_norm,
+                                        num_features=num_features, num_assets=num_assets,
+                                        bptt=bptt, lr=lr,
+                                        num_dense_units=num_dense_units, num_layers=num_layers, delta=delta, tag="tmp"
+                                        )
 
-        action, value = sess.run([self._network._new_policy_op, self._network._new_value_op],{
-            self._network._market_state : cur_state, self._network._is_training: is_train
-        })
+    def act_and_fetch(self, sess, network, last_state, last_action, last_value, reward, cur_state, is_train, idx, mode = "train"):
+        if mode == "train":
+            action, value = sess.run([network._new_policy_op, network._new_value_op],{
+                network._market_state : cur_state, network._is_training: is_train
+            })
+        else:
+            action, value = network.get_softmax_policy(sess, cur_state, is_train)
+
         # action, value = action[0], value[0]
         if idx != 0:
             self.states.append(last_state)
@@ -233,14 +281,14 @@ class PPOAgent:
         self.t += 1
         return action, value
 
-    def train(self, sess, state, actions, values, advantage, is_train):
-        self._network.backup_new_params(sess)
-        _, loss_ratio = self._network.optimize(sess, state, actions, values, advantage, is_train)
-        self._network.update_old_params_op(sess)
+
+
+    def train(self, sess, network, state, actions, values, advantage, is_train):
+        network.backup_new_params(sess)
+        _, loss_ratio = network.optimize(sess, state, actions, values, advantage, is_train)
+        network.update_old_params(sess)
         return loss_ratio[0], loss_ratio[1]
 
-    def get_allocations(self, sess, state, is_train):
-        return self._network.get_softmax_policy(sess, state, is_train)
 
     def _reset_trajectories(self):
         self.states = []
@@ -249,7 +297,15 @@ class PPOAgent:
         self.values = []
         self.next_values = []
 
-    def get_training_data(self):
+    def backup_train_update_test_model(self, sess):
+        self._network.backup_train_model(sess)
+        self._network.update_test_model(sess)
+
+    def update_train_from_tmp_model(self, sess):
+        self._network.update_train_model(sess)
+
+
+    def get_training_data(self, reset=True):
         obss = np.asarray(self.states)
         actions = np.asarray(self.actions)
         deltas = []
@@ -269,7 +325,7 @@ class PPOAgent:
 
         # standardize advantages
         delta_t = (delta_t - delta_t.mean()) / (delta_t.std() + 1e-5)
-        self._reset_trajectories()
+        if reset==True: self._reset_trajectories()
 
 
         return np.squeeze(obss, axis=1), np.squeeze(actions, axis=1), np.squeeze(value_t, axis=1), np.squeeze(delta_t, axis=1)
